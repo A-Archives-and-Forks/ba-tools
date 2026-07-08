@@ -572,7 +572,8 @@
       "background": "Background",
       "font": "Font",
       "elements": "Elements",
-      "behavior": "Behavior"
+      "behavior": "Behavior",
+      "script": "Script"
     },
 
     "content": {
@@ -629,11 +630,20 @@
       "deleteCharacter": "Delete Character"
     },
 
+    "script": {
+      "scriptContent": "Script",
+      "scriptPlaceholder": "Write your scenario script here...",
+      "play": "Play Script",
+      "stop": "Stop Script",
+      "errorLine": "Line {line}: {message}"
+    },
+
     "recording": {
       "title": "Recording Mode",
       "description": "You're about to enter recording mode. Prepare your screen recording software to capture the browser window. Click on the following button when you feel ready to start recording.",
       "escHint": "You can quit recording mode by pressing the Esc key (twice if you're in full screen).",
-      "start": "Start Recording"
+      "start": "Start Recording",
+      "startScript": "Play Script"
     },
 
     "toasts": {

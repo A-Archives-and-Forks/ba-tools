@@ -1,4 +1,3 @@
-import { ScenarioDataProvider } from "@/app/scenario-image-generator/_components/providers/scenario-data-provider";
 import { ScenarioEditorView } from "@/app/scenario-image-generator/_components/scenario-editor-view";
 import { HelpSheet } from "@/components/sheets/help-sheet";
 import { Button } from "@/components/ui/button";
@@ -38,9 +37,7 @@ export default async function ScenarioImageGeneratorPage() {
         <p>{t("tools.scenarioImageGenerator.description")}</p>
       </div>
 
-      <ScenarioDataProvider>
-        <ScenarioEditorView />
-      </ScenarioDataProvider>
+      <ScenarioEditorView />
 
       <div>
         <p className="text-sm text-muted-foreground text-center">

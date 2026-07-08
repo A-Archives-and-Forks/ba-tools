@@ -1,27 +1,26 @@
 "use client";
 
+import { ScenarioCanvas } from "@/app/scenario-image-generator/_components/scenario-canvas";
 import { ScenarioEditorCharacterSettings } from "@/app/scenario-image-generator/_components/scenario-editor-character-settings";
-import {
-  SCENARIO_FONT_EN,
-  SCENARIO_FONTS,
-  ScenarioView,
-} from "@/app/scenario-image-generator/_components/scenario-view";
 import {
   SCENARIO_TEXT_FONT_SIZE,
   SCENARIO_TEXT_SCROLL_SPEED,
 } from "@/app/scenario-image-generator/_lib/constants";
+import {
+  SCENARIO_FONTS,
+  SCENARIO_FONT_EN,
+} from "@/app/scenario-image-generator/_lib/fonts";
+import { getActiveScenarioRenderer } from "@/app/scenario-image-generator/_lib/renderer/scenario-renderer";
+import { parseScenarioScript } from "@/app/scenario-image-generator/_lib/script/parser";
+import { scenarioScriptPlayer } from "@/app/scenario-image-generator/_lib/script/player";
+import {
+  scenarioStore,
+  useScenarioStore,
+} from "@/app/scenario-image-generator/_lib/store";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { GlobeIcon, ImageIcon, PlusIcon, XIcon } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
-import { toast } from "sonner";
-import { useHotkeys } from "react-hotkeys-hook";
-import { useScenarioData } from "@/app/scenario-image-generator/_hooks/use-scenario-data";
 import {
   Select,
   SelectContent,
@@ -29,66 +28,51 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { GlobeIcon, ImageIcon, PlusIcon, XIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
+import { toast } from "sonner";
+
+const SCRIPTING_ENABLED = process.env.NODE_ENV !== "production";
 
 export function ScenarioEditorView() {
   const t = useTranslations();
+
+  const state = useScenarioStore((s) => s);
   const {
-    applicationRef,
     backgroundMode,
-    setBackgroundMode,
     name,
-    setName,
     affiliation,
-    setAffiliation,
     content,
-    setContent,
     font,
-    setFont,
     fontSize,
-    setFontSize,
     scrollSpeed,
-    setScrollSpeed,
     backgroundImage,
-    setBackgroundImage,
     backgroundUrl,
-    setBackgroundUrl,
-    characters,
-    setCharacters,
-    displayButtons,
-    setDisplayButtons,
-    autoEnabled,
-    setAutoEnabled,
-    displayLine,
-    setDisplayLine,
-    displayGradient,
-    setDisplayGradient,
-    displayTriangle,
-    setDisplayTriangle,
-    transparentBackground,
-    setTransparentBackground,
-
-    animate,
-    setAnimate,
-    recordingMode,
-    setRecordingMode,
-
-    backgroundName,
-    setBackgroundName,
-
-    backgroundInputRef,
-    characterInputRef,
-
-    background,
-
     backgroundScale,
     backgroundXOffset,
     backgroundYOffset,
-    setBackgroundScale,
-    setBackgroundXOffset,
-    setBackgroundYOffset,
-  } = useScenarioData();
+    characters,
+    displayButtons,
+    autoEnabled,
+    displayLine,
+    displayGradient,
+    displayTriangle,
+    transparentBackground,
+    animate,
+    recordingMode,
+    backgroundName,
+    script,
+    scriptPlaying,
+  } = state;
+
+  const backgroundInputRef = useRef<HTMLInputElement | null>(null);
+  const characterInputRef = useRef<HTMLInputElement | null>(null);
 
   const [backgroundScaleStr, setBackgroundScaleStr] = useState(
     backgroundScale.toString(),
@@ -102,20 +86,27 @@ export function ScenarioEditorView() {
     backgroundYOffset.toString(),
   );
 
+  const scriptParseResult = useMemo(
+    () => parseScenarioScript(script),
+    [script],
+  );
+  const scriptPlayable =
+    script.trim().length > 0 && scriptParseResult.errors.length === 0;
+
   function handleBackgroundImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files || files.length === 0) {
-      setBackgroundImage(null);
+      scenarioStore.set({ backgroundImage: null });
       return;
     }
 
     const file = files[0];
-    setBackgroundName(file.name);
+    scenarioStore.set({ backgroundName: file.name });
 
     const reader = new FileReader();
     reader.onload = (event) => {
       if (event.target?.result) {
-        setBackgroundImage(event.target.result as string);
+        scenarioStore.set({ backgroundImage: event.target.result as string });
       }
     };
     reader.readAsDataURL(file);
@@ -128,8 +119,7 @@ export function ScenarioEditorView() {
   }
 
   function handleRemoveBackgroundImage() {
-    setBackgroundImage(null);
-    setBackgroundName(null);
+    scenarioStore.set({ backgroundImage: null, backgroundName: null });
   }
 
   function handleCharacterImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -142,17 +132,19 @@ export function ScenarioEditorView() {
     const reader = new FileReader();
     reader.onload = (event) => {
       if (event.target?.result) {
-        setCharacters((prev) => [
-          ...prev,
-          {
-            spriteUrl: event.target?.result as string,
-            x: 0,
-            y: 0,
-            scale: 1,
-            filename: file.name,
-            timestamp: Date.now(),
-          },
-        ]);
+        scenarioStore.set((s) => ({
+          characters: [
+            ...s.characters,
+            {
+              spriteUrl: event.target?.result as string,
+              x: 0,
+              y: 0,
+              scale: 1,
+              filename: file.name,
+              timestamp: Date.now(),
+            },
+          ],
+        }));
       }
     };
     reader.readAsDataURL(file);
@@ -169,27 +161,23 @@ export function ScenarioEditorView() {
   }
 
   function handleAddCharacterUrl() {
-    setCharacters((prev) => [
-      ...prev,
-      {
-        spriteUrl: "",
-        x: 0,
-        y: 0,
-        scale: 1,
-        filename: "",
-        timestamp: Date.now(),
-      },
-    ]);
+    scenarioStore.set((s) => ({
+      characters: [
+        ...s.characters,
+        {
+          spriteUrl: "",
+          x: 0,
+          y: 0,
+          scale: 1,
+          filename: "",
+          timestamp: Date.now(),
+        },
+      ],
+    }));
   }
 
   function renderCanvas() {
-    const application = applicationRef.current?.getApplication();
-    if (!application) {
-      return null;
-    }
-
-    application.render();
-    return application.canvas;
+    return getActiveScenarioRenderer()?.renderToCanvas() ?? null;
   }
 
   function handleCopyToClipboard() {
@@ -224,6 +212,23 @@ export function ScenarioEditorView() {
     });
   }
 
+  function handleToggleAnimation() {
+    if (scriptPlaying) {
+      scenarioScriptPlayer.stop();
+      return;
+    }
+
+    scenarioStore.set((s) => ({ animate: !s.animate }));
+  }
+
+  function handlePlayScript() {
+    if (!scriptPlayable) {
+      return;
+    }
+
+    scenarioScriptPlayer.play(scriptParseResult.events);
+  }
+
   useEffect(() => {
     if (recordingMode) {
       document.body.style.overflow = "hidden";
@@ -240,11 +245,12 @@ export function ScenarioEditorView() {
         });
       }
 
-      setAnimate(false);
+      scenarioScriptPlayer.stop();
+      scenarioStore.set({ animate: false });
     }
   }, [recordingMode]);
 
-  useHotkeys("esc", () => setRecordingMode(false), {
+  useHotkeys("esc", () => scenarioStore.set({ recordingMode: false }), {
     enabled: recordingMode,
     enableOnFormTags: true,
     enableOnContentEditable: true,
@@ -261,47 +267,33 @@ export function ScenarioEditorView() {
       !Number.isNaN(newXOffset) &&
       !Number.isNaN(newYOffset)
     ) {
-      setBackgroundScale(newScale);
-      setBackgroundXOffset(newXOffset);
-      setBackgroundYOffset(newYOffset);
+      scenarioStore.set({
+        backgroundScale: newScale,
+        backgroundXOffset: newXOffset,
+        backgroundYOffset: newYOffset,
+      });
     }
   }, [backgroundScaleStr, backgroundXOffsetStr, backgroundYOffsetStr]);
 
   return (
     <div className="flex flex-col gap-6 items-center min-w-0">
       <div className="min-w-0">
-        <ScenarioView
-          applicationRef={applicationRef}
-          animate={animate}
-          content={content}
-          font={font}
-          fontSize={fontSize}
-          scrollSpeed={scrollSpeed}
-          name={name}
-          affiliation={affiliation.length > 0 ? affiliation : undefined}
-          displayButtons={displayButtons}
-          displayLine={displayLine}
-          displayGradient={displayGradient}
-          displayTriangle={displayTriangle}
-          transparentBackground={transparentBackground}
-          autoEnabled={autoEnabled}
-          backgroundImage={background ?? undefined}
-          backgroundScale={backgroundScale}
-          backgroundXOffset={backgroundXOffset}
-          backgroundYOffset={backgroundYOffset}
-          characters={characters}
-          recordingMode={recordingMode}
-        />
+        <ScenarioCanvas />
       </div>
 
       <Separator />
 
       <div className="flex gap-4">
-        <Button onClick={() => setAnimate((prev) => !prev)}>
-          {animate ? t("tools.scenarioImageGenerator.stopAnimation") : t("tools.scenarioImageGenerator.startAnimation")}
+        <Button onClick={handleToggleAnimation}>
+          {animate
+            ? t("tools.scenarioImageGenerator.stopAnimation")
+            : t("tools.scenarioImageGenerator.startAnimation")}
         </Button>
 
-        <Button disabled={animate} onClick={() => setRecordingMode(true)}>
+        <Button
+          disabled={animate}
+          onClick={() => scenarioStore.set({ recordingMode: true })}
+        >
           {t("tools.scenarioImageGenerator.recordingMode")}
         </Button>
       </div>
@@ -317,39 +309,72 @@ export function ScenarioEditorView() {
           <CardContent>
             <Tabs defaultValue="content" className="gap-4">
               <TabsList className="place-self-center">
-                <TabsTrigger value="content">{t("tools.scenarioImageGenerator.tabs.content")}</TabsTrigger>
-                <TabsTrigger value="background">{t("tools.scenarioImageGenerator.tabs.background")}</TabsTrigger>
-                <TabsTrigger value="font">{t("tools.scenarioImageGenerator.tabs.font")}</TabsTrigger>
-                <TabsTrigger value="elements">{t("tools.scenarioImageGenerator.tabs.elements")}</TabsTrigger>
-                <TabsTrigger value="behavior">{t("tools.scenarioImageGenerator.tabs.behavior")}</TabsTrigger>
+                <TabsTrigger value="content">
+                  {t("tools.scenarioImageGenerator.tabs.content")}
+                </TabsTrigger>
+                <TabsTrigger value="background">
+                  {t("tools.scenarioImageGenerator.tabs.background")}
+                </TabsTrigger>
+                <TabsTrigger value="font">
+                  {t("tools.scenarioImageGenerator.tabs.font")}
+                </TabsTrigger>
+                <TabsTrigger value="elements">
+                  {t("tools.scenarioImageGenerator.tabs.elements")}
+                </TabsTrigger>
+                <TabsTrigger value="behavior">
+                  {t("tools.scenarioImageGenerator.tabs.behavior")}
+                </TabsTrigger>
+                {SCRIPTING_ENABLED && (
+                  <TabsTrigger value="script">
+                    {t("tools.scenarioImageGenerator.tabs.script")}
+                  </TabsTrigger>
+                )}
               </TabsList>
 
               <TabsContent value="content">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Label htmlFor="name">{t("tools.scenarioImageGenerator.content.characterName")}</Label>
+                  <Label htmlFor="name">
+                    {t("tools.scenarioImageGenerator.content.characterName")}
+                  </Label>
                   <Input
                     id="name"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder={t("tools.scenarioImageGenerator.content.characterNamePlaceholder")}
+                    onChange={(e) =>
+                      scenarioStore.set({ name: e.target.value })
+                    }
+                    placeholder={t(
+                      "tools.scenarioImageGenerator.content.characterNamePlaceholder",
+                    )}
                     className="col-span-2"
                   />
 
-                  <Label htmlFor="affiliation">{t("tools.scenarioImageGenerator.content.affiliation")}</Label>
+                  <Label htmlFor="affiliation">
+                    {t("tools.scenarioImageGenerator.content.affiliation")}
+                  </Label>
                   <Input
                     id="affiliation"
                     value={affiliation}
-                    onChange={(e) => setAffiliation(e.target.value)}
-                    placeholder={t("tools.scenarioImageGenerator.content.affiliationPlaceholder")}
+                    onChange={(e) =>
+                      scenarioStore.set({ affiliation: e.target.value })
+                    }
+                    placeholder={t(
+                      "tools.scenarioImageGenerator.content.affiliationPlaceholder",
+                    )}
                     className="col-span-2"
                   />
 
-                  <Label htmlFor="content">{t("tools.scenarioImageGenerator.content.dialogueContent")}</Label>
+                  <Label htmlFor="content">
+                    {t("tools.scenarioImageGenerator.content.dialogueContent")}
+                  </Label>
                   <Textarea
                     id="content"
                     value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder={t("tools.scenarioImageGenerator.content.dialoguePlaceholder")}
+                    onChange={(e) =>
+                      scenarioStore.set({ content: e.target.value })
+                    }
+                    placeholder={t(
+                      "tools.scenarioImageGenerator.content.dialoguePlaceholder",
+                    )}
                     className="h-24 col-span-2"
                   />
                 </div>
@@ -364,7 +389,9 @@ export function ScenarioEditorView() {
                         : "backgroundUrl"
                     }
                   >
-                    {t("tools.scenarioImageGenerator.background.backgroundImage")}
+                    {t(
+                      "tools.scenarioImageGenerator.background.backgroundImage",
+                    )}
                   </Label>
                   <div className="flex gap-2 col-span-2">
                     {backgroundMode === "image" && (
@@ -373,7 +400,10 @@ export function ScenarioEditorView() {
                         onClick={handleBackgroundImageClick}
                         className="flex-1"
                       >
-                        {backgroundName || t("tools.scenarioImageGenerator.background.selectBackgroundImage")}
+                        {backgroundName ||
+                          t(
+                            "tools.scenarioImageGenerator.background.selectBackgroundImage",
+                          )}
                       </Button>
                     )}
 
@@ -391,8 +421,12 @@ export function ScenarioEditorView() {
                         id="backgroundUrl"
                         type="url"
                         value={backgroundUrl ?? ""}
-                        onChange={(e) => setBackgroundUrl(e.target.value)}
-                        placeholder={t("tools.scenarioImageGenerator.background.backgroundUrl")}
+                        onChange={(e) =>
+                          scenarioStore.set({ backgroundUrl: e.target.value })
+                        }
+                        placeholder={t(
+                          "tools.scenarioImageGenerator.background.backgroundUrl",
+                        )}
                         className="flex-1"
                       />
                     )}
@@ -400,9 +434,10 @@ export function ScenarioEditorView() {
                     <Button
                       variant="outline"
                       onClick={() =>
-                        setBackgroundMode((prev) =>
-                          prev === "image" ? "url" : "image",
-                        )
+                        scenarioStore.set((s) => ({
+                          backgroundMode:
+                            s.backgroundMode === "image" ? "url" : "image",
+                        }))
                       }
                       className="flex-shrink-0"
                     >
@@ -420,7 +455,9 @@ export function ScenarioEditorView() {
                   </div>
 
                   <Label htmlFor="backgroundScale">
-                    {t("tools.scenarioImageGenerator.background.backgroundScale")}
+                    {t(
+                      "tools.scenarioImageGenerator.background.backgroundScale",
+                    )}
                   </Label>
 
                   <Input
@@ -428,27 +465,41 @@ export function ScenarioEditorView() {
                     type="number"
                     value={backgroundScaleStr}
                     onChange={(e) => setBackgroundScaleStr(e.target.value)}
-                    placeholder={t("tools.scenarioImageGenerator.background.backgroundScalePlaceholder")}
+                    placeholder={t(
+                      "tools.scenarioImageGenerator.background.backgroundScalePlaceholder",
+                    )}
                     className="col-span-2"
                   />
 
-                  <Label htmlFor="backgroundXOffset">{t("tools.scenarioImageGenerator.background.backgroundXOffset")}</Label>
+                  <Label htmlFor="backgroundXOffset">
+                    {t(
+                      "tools.scenarioImageGenerator.background.backgroundXOffset",
+                    )}
+                  </Label>
                   <Input
                     id="backgroundXOffset"
                     type="number"
                     value={backgroundXOffsetStr}
                     onChange={(e) => setBackgroundXOffsetStr(e.target.value)}
-                    placeholder={t("tools.scenarioImageGenerator.background.backgroundXOffsetPlaceholder")}
+                    placeholder={t(
+                      "tools.scenarioImageGenerator.background.backgroundXOffsetPlaceholder",
+                    )}
                     className="col-span-2"
                   />
 
-                  <Label htmlFor="backgroundYOffset">{t("tools.scenarioImageGenerator.background.backgroundYOffset")}</Label>
+                  <Label htmlFor="backgroundYOffset">
+                    {t(
+                      "tools.scenarioImageGenerator.background.backgroundYOffset",
+                    )}
+                  </Label>
                   <Input
                     id="backgroundYOffset"
                     type="number"
                     value={backgroundYOffsetStr}
                     onChange={(e) => setBackgroundYOffsetStr(e.target.value)}
-                    placeholder={t("tools.scenarioImageGenerator.background.backgroundYOffsetPlaceholder")}
+                    placeholder={t(
+                      "tools.scenarioImageGenerator.background.backgroundYOffsetPlaceholder",
+                    )}
                     className="col-span-2"
                   />
                 </div>
@@ -456,15 +507,18 @@ export function ScenarioEditorView() {
 
               <TabsContent value="font">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Label>{t("tools.scenarioImageGenerator.fontSettings.font")}</Label>
+                  <Label>
+                    {t("tools.scenarioImageGenerator.fontSettings.font")}
+                  </Label>
                   <div className="col-span-2">
                     <Select
                       value={font.family}
                       onValueChange={(value) =>
-                        setFont(
-                          SCENARIO_FONTS.find((f) => f.family === value) ||
+                        scenarioStore.set({
+                          font:
+                            SCENARIO_FONTS.find((f) => f.family === value) ||
                             SCENARIO_FONT_EN,
-                        )
+                        })
                       }
                     >
                       <SelectTrigger>
@@ -482,14 +536,20 @@ export function ScenarioEditorView() {
                   </div>
 
                   <Label htmlFor="fontSize">
-                    {t("tools.scenarioImageGenerator.fontSettings.fontSize", { defaultSize: SCENARIO_TEXT_FONT_SIZE })}
+                    {t("tools.scenarioImageGenerator.fontSettings.fontSize", {
+                      defaultSize: SCENARIO_TEXT_FONT_SIZE,
+                    })}
                   </Label>
                   <Input
                     id="fontSize"
                     type="number"
                     value={fontSize}
-                    onChange={(e) => setFontSize(Number(e.target.value))}
-                    placeholder={t("tools.scenarioImageGenerator.fontSettings.fontSizePlaceholder")}
+                    onChange={(e) =>
+                      scenarioStore.set({ fontSize: Number(e.target.value) })
+                    }
+                    placeholder={t(
+                      "tools.scenarioImageGenerator.fontSettings.fontSizePlaceholder",
+                    )}
                     className="col-span-2"
                   />
                 </div>
@@ -497,43 +557,65 @@ export function ScenarioEditorView() {
 
               <TabsContent value="elements">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Label htmlFor="displayButtons">{t("tools.scenarioImageGenerator.elements.displayButtons")}</Label>
+                  <Label htmlFor="displayButtons">
+                    {t("tools.scenarioImageGenerator.elements.displayButtons")}
+                  </Label>
                   <Switch
                     id="displayButtons"
                     checked={displayButtons}
-                    onCheckedChange={(checked) => setDisplayButtons(checked)}
+                    onCheckedChange={(checked) =>
+                      scenarioStore.set({ displayButtons: checked })
+                    }
                     className="col-span-2"
                   />
 
-                  <Label htmlFor="autoEnabled">{t("tools.scenarioImageGenerator.elements.autoEnabled")}</Label>
+                  <Label htmlFor="autoEnabled">
+                    {t("tools.scenarioImageGenerator.elements.autoEnabled")}
+                  </Label>
                   <Switch
                     id="autoEnabled"
                     checked={autoEnabled}
-                    onCheckedChange={(checked) => setAutoEnabled(checked)}
+                    onCheckedChange={(checked) =>
+                      scenarioStore.set({ autoEnabled: checked })
+                    }
                     className="col-span-2"
                   />
 
-                  <Label htmlFor="displayLine">{t("tools.scenarioImageGenerator.elements.displayHorizontalLine")}</Label>
+                  <Label htmlFor="displayLine">
+                    {t(
+                      "tools.scenarioImageGenerator.elements.displayHorizontalLine",
+                    )}
+                  </Label>
                   <Switch
                     id="displayLine"
                     checked={displayLine}
-                    onCheckedChange={(checked) => setDisplayLine(checked)}
+                    onCheckedChange={(checked) =>
+                      scenarioStore.set({ displayLine: checked })
+                    }
                     className="col-span-2"
                   />
 
-                  <Label htmlFor="displayGradient">{t("tools.scenarioImageGenerator.elements.displayGradient")}</Label>
+                  <Label htmlFor="displayGradient">
+                    {t("tools.scenarioImageGenerator.elements.displayGradient")}
+                  </Label>
                   <Switch
                     id="displayGradient"
                     checked={displayGradient}
-                    onCheckedChange={(checked) => setDisplayGradient(checked)}
+                    onCheckedChange={(checked) =>
+                      scenarioStore.set({ displayGradient: checked })
+                    }
                     className="col-span-2"
                   />
 
-                  <Label htmlFor="displayTriangle">{t("tools.scenarioImageGenerator.elements.displayTriangle")}</Label>
+                  <Label htmlFor="displayTriangle">
+                    {t("tools.scenarioImageGenerator.elements.displayTriangle")}
+                  </Label>
                   <Switch
                     id="displayTriangle"
                     checked={displayTriangle}
-                    onCheckedChange={(checked) => setDisplayTriangle(checked)}
+                    onCheckedChange={(checked) =>
+                      scenarioStore.set({ displayTriangle: checked })
+                    }
                     className="col-span-2"
                   />
                 </div>
@@ -542,7 +624,10 @@ export function ScenarioEditorView() {
               <TabsContent value="behavior">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Label htmlFor="scrollSpeed">
-                    {t("tools.scenarioImageGenerator.behaviorSettings.textScrollSpeed", { defaultSpeed: SCENARIO_TEXT_SCROLL_SPEED })}
+                    {t(
+                      "tools.scenarioImageGenerator.behaviorSettings.textScrollSpeed",
+                      { defaultSpeed: SCENARIO_TEXT_SCROLL_SPEED },
+                    )}
                   </Label>
                   <Input
                     id="scrollSpeed"
@@ -551,31 +636,98 @@ export function ScenarioEditorView() {
                     min={0}
                     max={1}
                     step={0.01}
-                    onChange={(e) => setScrollSpeed(Number(e.target.value))}
-                    placeholder={t("tools.scenarioImageGenerator.behaviorSettings.scrollSpeedPlaceholder")}
+                    onChange={(e) =>
+                      scenarioStore.set({ scrollSpeed: Number(e.target.value) })
+                    }
+                    placeholder={t(
+                      "tools.scenarioImageGenerator.behaviorSettings.scrollSpeedPlaceholder",
+                    )}
                     className="col-span-2"
                   />
 
                   <Label htmlFor="transparentBackground">
-                    {t("tools.scenarioImageGenerator.behaviorSettings.transparentBackground")}
+                    {t(
+                      "tools.scenarioImageGenerator.behaviorSettings.transparentBackground",
+                    )}
                   </Label>
                   <Switch
                     id="transparentBackground"
                     checked={transparentBackground}
                     onCheckedChange={(checked) =>
-                      setTransparentBackground(checked)
+                      scenarioStore.set({ transparentBackground: checked })
                     }
                     className="col-span-2"
                   />
                 </div>
               </TabsContent>
+
+              {SCRIPTING_ENABLED && (
+                <TabsContent value="script">
+                  <div className="flex flex-col gap-4">
+                    <Label htmlFor="script">
+                      {t("tools.scenarioImageGenerator.script.scriptContent")}
+                    </Label>
+
+                    <Textarea
+                      id="script"
+                      value={script}
+                      onChange={(e) =>
+                        scenarioStore.set({ script: e.target.value })
+                      }
+                      placeholder={t(
+                        "tools.scenarioImageGenerator.script.scriptPlaceholder",
+                      )}
+                      className="h-64 font-mono"
+                    />
+
+                    {script.trim().length > 0 &&
+                      scriptParseResult.errors.length > 0 && (
+                        <div className="flex flex-col gap-1">
+                          {scriptParseResult.errors.map((error) => (
+                            <p
+                              key={`${error.line}-${error.message}`}
+                              className="text-sm text-destructive"
+                            >
+                              {t(
+                                "tools.scenarioImageGenerator.script.errorLine",
+                                {
+                                  line: error.line,
+                                  message: error.message,
+                                },
+                              )}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+
+                    <div className="flex gap-4">
+                      <Button
+                        disabled={!scriptPlayable || scriptPlaying}
+                        onClick={handlePlayScript}
+                      >
+                        {t("tools.scenarioImageGenerator.script.play")}
+                      </Button>
+
+                      <Button
+                        variant="destructive"
+                        disabled={!scriptPlaying}
+                        onClick={() => scenarioScriptPlayer.stop()}
+                      >
+                        {t("tools.scenarioImageGenerator.script.stop")}
+                      </Button>
+                    </div>
+                  </div>
+                </TabsContent>
+              )}
             </Tabs>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>{t("tools.scenarioImageGenerator.characters")}</CardTitle>
+            <CardTitle>
+              {t("tools.scenarioImageGenerator.characters")}
+            </CardTitle>
           </CardHeader>
 
           <CardContent>
@@ -595,35 +747,37 @@ export function ScenarioEditorView() {
                 silhouette={character.silhouette}
                 silhouetteColor={character.silhouetteColor}
                 onChange={(updatedCharacter) => {
-                  setCharacters((prev) =>
-                    prev.map((c, i) =>
+                  scenarioStore.set((s) => ({
+                    characters: s.characters.map((c, i) =>
                       i === idx ? { ...c, ...updatedCharacter } : c,
                     ),
-                  );
+                  }));
                 }}
                 onDelete={() => {
-                  setCharacters((prev) => prev.filter((_, i) => i !== idx));
+                  scenarioStore.set((s) => ({
+                    characters: s.characters.filter((_, i) => i !== idx),
+                  }));
                 }}
                 onMoveUp={() => {
-                  setCharacters((prev) => {
-                    const newCharacters = [...prev];
+                  scenarioStore.set((s) => {
+                    const newCharacters = [...s.characters];
                     if (idx > 0) {
                       const temp = newCharacters[idx - 1];
                       newCharacters[idx - 1] = newCharacters[idx];
                       newCharacters[idx] = temp;
                     }
-                    return newCharacters;
+                    return { characters: newCharacters };
                   });
                 }}
                 onMoveDown={() => {
-                  setCharacters((prev) => {
-                    const newCharacters = [...prev];
+                  scenarioStore.set((s) => {
+                    const newCharacters = [...s.characters];
                     if (idx < newCharacters.length - 1) {
                       const temp = newCharacters[idx + 1];
                       newCharacters[idx + 1] = newCharacters[idx];
                       newCharacters[idx] = temp;
                     }
-                    return newCharacters;
+                    return { characters: newCharacters };
                   });
                 }}
               />
@@ -655,8 +809,12 @@ export function ScenarioEditorView() {
       <Separator />
 
       <div className="flex gap-4">
-        <Button onClick={handleCopyToClipboard}>{t("common.copyToClipboard")}</Button>
-        <Button onClick={handleDownloadImage}>{t("common.downloadImage")}</Button>
+        <Button onClick={handleCopyToClipboard}>
+          {t("common.copyToClipboard")}
+        </Button>
+        <Button onClick={handleDownloadImage}>
+          {t("common.downloadImage")}
+        </Button>
       </div>
 
       {recordingMode && (
@@ -666,22 +824,31 @@ export function ScenarioEditorView() {
       {recordingMode && !animate && (
         <div className="fixed top-0 left-0 right-0 bottom-0 bg-amber-800/60 text-white z-50 flex items-center justify-center">
           <div className="flex flex-col items-center justify-center text-center gap-4 w-lg">
-            <h2 className="text-3xl font-semibold">{t("tools.scenarioImageGenerator.recording.title")}</h2>
+            <h2 className="text-3xl font-semibold">
+              {t("tools.scenarioImageGenerator.recording.title")}
+            </h2>
 
-            <p>
-              {t("tools.scenarioImageGenerator.recording.description")}
-            </p>
+            <p>{t("tools.scenarioImageGenerator.recording.description")}</p>
 
-            <p>
-              {t("tools.scenarioImageGenerator.recording.escHint")}
-            </p>
+            <p>{t("tools.scenarioImageGenerator.recording.escHint")}</p>
 
-            <Button
-              onClick={() => setAnimate(true)}
-              className="bg-amber-500 hover:bg-amber-600"
-            >
-              {t("tools.scenarioImageGenerator.recording.start")}
-            </Button>
+            <div className="flex gap-4">
+              <Button
+                onClick={() => scenarioStore.set({ animate: true })}
+                className="bg-amber-500 hover:bg-amber-600"
+              >
+                {t("tools.scenarioImageGenerator.recording.start")}
+              </Button>
+
+              {SCRIPTING_ENABLED && scriptPlayable && (
+                <Button
+                  onClick={handlePlayScript}
+                  className="bg-amber-500 hover:bg-amber-600"
+                >
+                  {t("tools.scenarioImageGenerator.recording.startScript")}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       )}

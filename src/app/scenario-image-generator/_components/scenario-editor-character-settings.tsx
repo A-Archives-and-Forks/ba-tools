@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useEffect, useRef, useState } from "react";
 
 type SpriteMode = "image" | "url";
 
@@ -111,7 +111,9 @@ export function ScenarioEditorCharacterSettings({
   return (
     <div className="border rounded-md px-6 py-4 flex flex-col gap-2">
       <div className="grid grid-cols-3 gap-4">
-        <Label htmlFor="spriteUrl">{t("tools.scenarioImageGenerator.character.sprite")}</Label>
+        <Label htmlFor="spriteUrl">
+          {t("tools.scenarioImageGenerator.character.sprite")}
+        </Label>
         <div className="col-span-2">
           {spriteMode === "image" && (
             <Button
@@ -119,7 +121,8 @@ export function ScenarioEditorCharacterSettings({
               className="w-full"
               onClick={handleFileInputClick}
             >
-              {filename ?? t("tools.scenarioImageGenerator.character.selectSprite")}
+              {filename ??
+                t("tools.scenarioImageGenerator.character.selectSprite")}
             </Button>
           )}
 
@@ -131,7 +134,9 @@ export function ScenarioEditorCharacterSettings({
               onChange={(e) =>
                 onChange({ spriteUrl: e.target.value, filename, x, y, scale })
               }
-              placeholder={t("tools.scenarioImageGenerator.character.enterImageUrl")}
+              placeholder={t(
+                "tools.scenarioImageGenerator.character.enterImageUrl",
+              )}
             />
           )}
 
@@ -172,7 +177,9 @@ export function ScenarioEditorCharacterSettings({
           className="col-span-2"
         />
 
-        <Label htmlFor="darken">{t("tools.scenarioImageGenerator.character.darken")}</Label>
+        <Label htmlFor="darken">
+          {t("tools.scenarioImageGenerator.character.darken")}
+        </Label>
         <Switch
           id="darken"
           key={`${timestamp}-darken`}
@@ -190,7 +197,9 @@ export function ScenarioEditorCharacterSettings({
           className="col-span-2"
         />
 
-        <Label htmlFor="hologram">{t("tools.scenarioImageGenerator.character.hologram")}</Label>
+        <Label htmlFor="hologram">
+          {t("tools.scenarioImageGenerator.character.hologram")}
+        </Label>
         <Switch
           id="hologram"
           key={`${timestamp}-hologram`}
@@ -208,7 +217,9 @@ export function ScenarioEditorCharacterSettings({
           className="col-span-2"
         />
 
-        <Label htmlFor="silhouette">{t("tools.scenarioImageGenerator.character.silhouette")}</Label>
+        <Label htmlFor="silhouette">
+          {t("tools.scenarioImageGenerator.character.silhouette")}
+        </Label>
         <Switch
           id="silhouette"
           key={`${timestamp}-silhouette`}
@@ -229,7 +240,9 @@ export function ScenarioEditorCharacterSettings({
 
         {silhouette && (
           <>
-            <Label htmlFor="silhouetteColor">{t("tools.scenarioImageGenerator.character.silhouetteColor")}</Label>
+            <Label htmlFor="silhouetteColor">
+              {t("tools.scenarioImageGenerator.character.silhouetteColor")}
+            </Label>
             <Input
               id="silhouetteColor"
               type="color"
