@@ -14,7 +14,11 @@
     "lint:fix": "biome lint . --write",
     "format": "biome format . --write",
     "db:pull": "prisma db pull",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "jobs:dev": "trigger dev",
+    "jobs:deploy": "trigger deploy"
   },
   "dependencies": {
     "@ai-sdk/gateway": "^3.0.125",
@@ -57,7 +61,9 @@
     "@resvg/resvg-js": "^2.6.2",
     "@resvg/resvg-wasm": "^2.6.2",
     "@serwist/next": "^9.5.7",
+    "@trigger.dev/sdk": "^4.5.4",
     "ai": "^6.0.197",
+    "axios": "^1.18.1",
     "bufferutil": "^4.0.9",
     "chromadb": "^3.0.12",
     "class-variance-authority": "^0.7.1",
@@ -102,6 +108,7 @@
     "svix": "^1.69.0",
     "tailwind-merge": "^3.0.2",
     "tailwindcss-animate": "^1.0.7",
+    "trigger.dev": "^4.5.4",
     "unist-util-visit": "^5.0.0",
     "usehooks-ts": "^3.1.1",
     "uuid": "^11.1.0",
@@ -113,6 +120,7 @@
     "@biomejs/biome": "^1.9.4",
     "@tailwindcss/postcss": "^4",
     "@tailwindcss/typography": "^0.5.16",
+    "@trigger.dev/build": "^4.5.4",
     "@types/howler": "^2.2.12",
     "@types/mdast": "^4.0.4",
     "@types/mdx": "^2.0.13",
