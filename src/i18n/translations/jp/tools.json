@@ -1061,5 +1061,78 @@
     "userStudent": "{name}さんの今日の生徒",
     "viewYours": "「今日のあなたの生徒」を表示",
     "viewGlobal": "「今日の全ユーザー共通の生徒」を表示"
+  },
+
+  "admin": {
+    "banners": {
+      "title": "グローバル版ガチャ管理",
+      "description": "今後のグローバル版ガチャの作成・編集・移動ができます。バナーを別の期間ボックスにドラッグして移動できます。",
+      "addDateRange": "期間を追加",
+      "addBanner": "バナーを追加",
+      "save": "保存",
+      "offset": {
+        "action": "バナーをずらす",
+        "title": "バナーをずらす",
+        "description": "選択した開始日以降のすべてのバナーを、指定した日数（正負可）だけずらします。",
+        "fromStartDate": "この開始日以降",
+        "offsetDays": "ずらす日数",
+        "offsetDaysHint": "負の数を指定すると前倒しになります。",
+        "apply": "適用"
+      },
+      "dragHandle": "バナーをドラッグ",
+      "empty": "今後のバナーがありません。先に期間を追加してからバナーを作成してください。",
+      "emptyGroup": "ここにバナーをドロップするか、この期間向けに作成してください。",
+      "removeEmptyGroup": "削除",
+      "fields": {
+        "name": "名前",
+        "namePlaceholder": "バナー名（任意）",
+        "startDate": "開始日",
+        "endDate": "終了日",
+        "dateRange": "期間",
+        "dateRangePlaceholder": "期間を選択",
+        "freePulls": "無料スカウト",
+        "freePullsShort": "無料",
+        "selectablePickup": "選択式ピックアップ",
+        "selectablePickupShort": "選択式",
+        "pickupStudents": "ピックアップ生徒",
+        "addStudent": "生徒を追加",
+        "removeStudent": "生徒を削除"
+      },
+      "newDateRange": {
+        "title": "期間を追加",
+        "description": "空の期間ボックスを作成します。バナーをドラッグで入れるか、新規作成できます。",
+        "create": "作成"
+      },
+      "newBanner": {
+        "title": "バナーを追加",
+        "description": "既存の期間に新しいバナーを作成します。",
+        "create": "作成"
+      },
+      "delete": {
+        "title": "バナーを削除",
+        "description": "このバナーを削除しますか？この操作は取り消せません。",
+        "confirm": "削除"
+      },
+      "toasts": {
+        "createSuccess": "バナーを作成しました。",
+        "createFail": "バナーの作成に失敗しました。",
+        "saveSuccess": "バナーを保存しました。",
+        "saveFail": "バナーの保存に失敗しました。",
+        "deleteSuccess": "バナーを削除しました。",
+        "deleteFail": "バナーの削除に失敗しました。",
+        "moveSuccess": "バナーを移動しました。",
+        "moveFail": "バナーの移動に失敗しました。",
+        "groupSaveSuccess": "期間を更新しました。",
+        "groupSaveFail": "期間の更新に失敗しました。",
+        "groupCreateSuccess": "期間を追加しました。",
+        "groupExists": "その期間は既に存在します。",
+        "invalidDates": "終了日は開始日より後にしてください。",
+        "needStudents": "ピックアップ生徒を1人以上追加してください。",
+        "noGroup": "先に期間を作成してください。",
+        "offsetSuccess": "{count}件のバナーをずらしました。",
+        "offsetFail": "バナーのずらしに失敗しました。",
+        "offsetZero": "ずらす日数は0以外にしてください。"
+      }
+    }
   }
 }

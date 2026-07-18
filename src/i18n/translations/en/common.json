@@ -74,6 +74,10 @@
       "games": {
         "title": "Games",
         "flappyPeroro": "Flappy Peroro"
+      },
+      "admin": {
+        "title": "Admin",
+        "banners": "Manage Banners"
       }
     }
   },

@@ -1213,5 +1213,78 @@
     "userStudent": "{name}'s Student",
     "viewYours": "View Your Student of the Day",
     "viewGlobal": "View Global Student of the Day"
+  },
+
+  "admin": {
+    "banners": {
+      "title": "Manage Global Banners",
+      "description": "Create, edit, and rearrange upcoming global banners. Drag a banner onto another date range to move it.",
+      "addDateRange": "Add date range",
+      "addBanner": "Add banner",
+      "save": "Save",
+      "offset": {
+        "action": "Offset banners",
+        "title": "Offset banners",
+        "description": "Shift every banner that starts on or after the selected date by a number of days (positive or negative).",
+        "fromStartDate": "From start date",
+        "offsetDays": "Offset days",
+        "offsetDaysHint": "Use a negative number to move banners earlier.",
+        "apply": "Apply offset"
+      },
+      "dragHandle": "Drag banner",
+      "empty": "No upcoming banners. Add a date range, then create a banner.",
+      "emptyGroup": "Drop a banner here, or create one for this date range.",
+      "removeEmptyGroup": "Remove",
+      "fields": {
+        "name": "Name",
+        "namePlaceholder": "Optional banner name",
+        "startDate": "Start date",
+        "endDate": "End date",
+        "dateRange": "Date range",
+        "dateRangePlaceholder": "Select a date range",
+        "freePulls": "Free pulls",
+        "freePullsShort": "Free",
+        "selectablePickup": "Selectable pickup",
+        "selectablePickupShort": "Select",
+        "pickupStudents": "Pickup students",
+        "addStudent": "Add student",
+        "removeStudent": "Remove student"
+      },
+      "newDateRange": {
+        "title": "Add date range",
+        "description": "Create an empty date range box. You can drag banners into it or create a new banner for it.",
+        "create": "Create"
+      },
+      "newBanner": {
+        "title": "Add banner",
+        "description": "Create a new banner in an existing date range.",
+        "create": "Create"
+      },
+      "delete": {
+        "title": "Delete banner",
+        "description": "Are you sure you want to delete this banner? This cannot be undone.",
+        "confirm": "Delete"
+      },
+      "toasts": {
+        "createSuccess": "Banner created.",
+        "createFail": "Failed to create banner.",
+        "saveSuccess": "Banner saved.",
+        "saveFail": "Failed to save banner.",
+        "deleteSuccess": "Banner deleted.",
+        "deleteFail": "Failed to delete banner.",
+        "moveSuccess": "Banner moved.",
+        "moveFail": "Failed to move banner.",
+        "groupSaveSuccess": "Date range updated.",
+        "groupSaveFail": "Failed to update date range.",
+        "groupCreateSuccess": "Date range added.",
+        "groupExists": "That date range already exists.",
+        "invalidDates": "End date must be after start date.",
+        "needStudents": "Add at least one pickup student.",
+        "noGroup": "Create a date range first.",
+        "offsetSuccess": "Offset {count} banner(s).",
+        "offsetFail": "Failed to offset banners.",
+        "offsetZero": "Offset days must not be zero."
+      }
+    }
   }
 }

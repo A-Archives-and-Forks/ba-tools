@@ -21,6 +21,7 @@ import {
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { canAccessPlanaAi } from "@/lib/ai/plana-access";
+import { isSuperUser } from "@/lib/auth/super-user";
 import { SignInButton, UserButton, useUser } from "@clerk/nextjs";
 import { Authenticated, Unauthenticated, useQuery } from "convex/react";
 import {
@@ -40,6 +41,7 @@ import {
   LogIn,
   MessageCircleHeartIcon,
   RectangleEllipsisIcon,
+  ShieldIcon,
   TrainTrackIcon,
   UsersIcon,
 } from "lucide-react";
@@ -179,6 +181,7 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { user } = useUser();
   const canShowPlanaAi = canAccessPlanaAi(user);
+  const canShowAdmin = isSuperUser(user);
 
   const GAMEPLAY_TOOLS: NavLink[] = [
     {
@@ -274,6 +277,16 @@ export function AppSidebar() {
     },
   ];
 
+  const ADMIN: NavLink[] = canShowAdmin
+    ? [
+        {
+          href: "/admin/banners",
+          text: t("common.header.nav.admin.banners"),
+          icon: ShieldIcon,
+        },
+      ]
+    : [];
+
   const NAVIGATION_GROUPS: NavigationGroup[] = [
     {
       id: "gameplay-tools",
@@ -295,6 +308,15 @@ export function AppSidebar() {
       name: t("common.header.nav.games.title"),
       links: GAMES,
     },
+    ...(canShowAdmin
+      ? [
+          {
+            id: "admin",
+            name: t("common.header.nav.admin.title"),
+            links: ADMIN,
+          },
+        ]
+      : []),
   ];
 
   return (

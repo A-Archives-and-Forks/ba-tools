@@ -75,6 +75,10 @@
       "games": {
         "title": "ゲーム",
         "flappyPeroro": "フラッピー・ペロロ"
+      },
+      "admin": {
+        "title": "管理",
+        "banners": "ガチャ管理"
       }
     }
   },
