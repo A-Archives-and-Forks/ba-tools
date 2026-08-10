@@ -44,6 +44,17 @@ export type ChangelogItemData = {
 
 export const CHANGELOG: ChangelogItemData[] = [
   {
+    date: "August 10, 2026",
+    features: [
+      {
+        scope: CHANGELOG_SCOPES.formationDisplay,
+        description: "Added ability to specify custom text around formation rows.",
+      }
+    ],
+    fixes: [],
+    changes: [],
+  },
+  {
     date: "August 5, 2026",
     features: [],
     fixes: [],

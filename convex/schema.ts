@@ -19,9 +19,25 @@ export const formationStudentItem = v.object({
   level: v.optional(v.number()),
 });
 
+export const formationRowLabel = v.object({
+  text: v.string(),
+  side: v.union(v.literal("left"), v.literal("right")),
+  fontSize: v.optional(v.number()),
+  color: v.optional(v.string()),
+  shadowEnabled: v.optional(v.boolean()),
+  shadowColor: v.optional(v.string()),
+  shadowOpacity: v.optional(v.number()),
+  shadowOffsetX: v.optional(v.number()),
+  shadowOffsetY: v.optional(v.number()),
+  shadowBlur: v.optional(v.number()),
+  shadowSpread: v.optional(v.number()),
+  distance: v.optional(v.number()),
+});
+
 export const formationRow = v.object({
   strikers: v.array(formationStudentItem),
   specials: v.array(formationStudentItem),
+  label: v.optional(formationRowLabel),
 });
 
 export const timelineStudentItem = v.object({

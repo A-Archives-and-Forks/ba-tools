@@ -1,16 +1,20 @@
 "use client";
 
 import { FormationPreview } from "@/app/formation-display/_components/formation-preview";
+import { FormationRowsStack } from "@/app/formation-display/_components/formation-row-label";
 import { Button } from "@/components/ui/button";
-import { persistedSlotsToStudentItems } from "@/lib/formation-display-utils";
+import { useStudents } from "@/hooks/use-students";
+import {
+  createDefaultFormationRowLabel,
+  persistedSlotsToStudentItems,
+} from "@/lib/formation-display-utils";
 import { inferFormationType } from "@/lib/formation-type";
 import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { api } from "~convex/api";
-import { useStudents } from "@/hooks/use-students";
-import { useTranslations } from "next-intl";
 
 export type FormationEntryProps = {
   entry: FunctionReturnType<typeof api.formation.getOwn>[number];
@@ -30,10 +34,31 @@ export function FormationEntry({ entry }: FormationEntryProps) {
         ? entry.rows
         : [{ strikers: entry.strikers, specials: entry.specials }];
 
-    return sources.map((row) => ({
-      strikers: persistedSlotsToStudentItems(row.strikers, allStudents),
-      specials: persistedSlotsToStudentItems(row.specials, allStudents),
-    }));
+    return sources.map((row) => {
+      const label =
+        "label" in row && row.label
+          ? createDefaultFormationRowLabel({
+              text: row.label.text,
+              side: row.label.side,
+              fontSize: row.label.fontSize,
+              color: row.label.color,
+              shadowEnabled: row.label.shadowEnabled,
+              shadowColor: row.label.shadowColor,
+              shadowOpacity: row.label.shadowOpacity,
+              shadowOffsetX: row.label.shadowOffsetX,
+              shadowOffsetY: row.label.shadowOffsetY,
+              shadowBlur: row.label.shadowBlur,
+              shadowSpread: row.label.shadowSpread,
+              distance: row.label.distance,
+            })
+          : undefined;
+
+      return {
+        strikers: persistedSlotsToStudentItems(row.strikers, allStudents),
+        specials: persistedSlotsToStudentItems(row.specials, allStudents),
+        label,
+      };
+    });
   }, [entry.rows, entry.strikers, entry.specials, allStudents]);
 
   const rowGapPx = entry.rowGap ?? 8;
@@ -80,27 +105,32 @@ export function FormationEntry({ entry }: FormationEntryProps) {
           )}
         </div>
 
-        <div
-          className="flex w-fit max-w-full flex-col items-center"
-          style={{ zoom: 0.8, gap: rowGapPx }}
-        >
-          {previewRows.map((row, rowIndex) => (
-            <FormationPreview
-              key={`${entry._id}-row-${rowIndex}`}
-              strikers={row.strikers}
-              specials={row.specials}
-              displayOverline={entry.displayOverline}
-              noDisplayRole={entry.noDisplayRole}
-              groupsVertical={entry.groupsVertical}
-              formationType={effectiveType}
-            />
-          ))}
+        <div style={{ zoom: 0.8 }}>
+          <FormationRowsStack
+            rowGap={rowGapPx}
+            items={previewRows.map((row, rowIndex) => ({
+              key: `${entry._id}-row-${rowIndex}`,
+              label: row.label,
+              children: (
+                <FormationPreview
+                  strikers={row.strikers}
+                  specials={row.specials}
+                  displayOverline={entry.displayOverline}
+                  noDisplayRole={entry.noDisplayRole}
+                  groupsVertical={entry.groupsVertical}
+                  formationType={effectiveType}
+                />
+              ),
+            }))}
+          />
         </div>
       </div>
 
       <div className="flex items-center gap-4">
         <Button variant="outline" asChild>
-          <Link href={`/formation-display?id=${entry._id}`}>{t("common.edit")}</Link>
+          <Link href={`/formation-display?id=${entry._id}`}>
+            {t("common.edit")}
+          </Link>
         </Button>
 
         <Button

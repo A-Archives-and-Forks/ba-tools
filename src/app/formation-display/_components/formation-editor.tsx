@@ -4,17 +4,8 @@ import {
   FormationPreview,
   type StudentItem,
 } from "@/app/formation-display/_components/formation-preview";
-import type { Student } from "@/lib/types";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type SetStateAction,
-} from "react";
-import { useTranslations } from "next-intl";
-import html2canvas from "html2canvas-pro";
+import { FormationRowsStack } from "@/app/formation-display/_components/formation-row-label";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -24,46 +15,91 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
+import type { Student } from "@/lib/types";
+import html2canvas from "html2canvas-pro";
 import { ChevronsUpDownIcon, ImportIcon, PlusIcon } from "lucide-react";
+import { useTranslations } from "next-intl";
+import {
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
-import { sleep } from "@/lib/sleep";
 import { StudentPicker } from "@/components/common/student-picker";
+import { sleep } from "@/lib/sleep";
 
 import type { EditableConfig } from "@/app/formation-display/_components/formation-preview";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useQueryWithStatus } from "@/lib/convex";
-import { api } from "~convex/api";
-import type { Id } from "~convex/dataModel";
-import { Authenticated, useMutation } from "convex/react";
-import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
+import { StarterOrderPanel } from "@/app/formation-display/_components/starter-order-panel";
 import { MessageBox } from "@/components/common/message-box";
-import { clearCache } from "@/lib/cache";
-import { v4 as uuid } from "uuid";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
-import { useUserPreferences } from "@/hooks/use-preferences";
-import { useStudents } from "@/hooks/use-students";
-import { useDirtyStateTracker } from "@/hooks/use-dirty-state-tracker";
-import { useNavigationGuard } from "next-navigation-guard";
-import { SaveDialog } from "@/components/dialogs/save-dialog";
 import { SaveStatus } from "@/components/common/save-status";
 import { ParseEchelonDataDialog } from "@/components/dialogs/parse-echelon-data-dialog";
+import { SaveDialog } from "@/components/dialogs/save-dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { useDirtyStateTracker } from "@/hooks/use-dirty-state-tracker";
+import { useUserPreferences } from "@/hooks/use-preferences";
+import { useStudents } from "@/hooks/use-students";
+import { clearCache } from "@/lib/cache";
+import { useQueryWithStatus } from "@/lib/convex";
 import type { EchelonData } from "@/lib/echelon-parser";
-import { type FormationType, inferFormationType } from "@/lib/formation-type";
 import {
+  DEFAULT_FORMATIONATION_ROW_LABEL,
+  type FormationRowLabel,
+  type FormationRowLabelSide,
+  createDefaultFormationRowLabel,
   persistedSlotsToStudentItems,
   studentItemsToPersistedSlots,
 } from "@/lib/formation-display-utils";
-import { StarterOrderPanel } from "@/app/formation-display/_components/starter-order-panel";
+import { type FormationType, inferFormationType } from "@/lib/formation-type";
+import { cn } from "@/lib/utils";
+import { Authenticated, useMutation } from "convex/react";
+import { useNavigationGuard } from "next-navigation-guard";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
+import { v4 as uuid } from "uuid";
+import { api } from "~convex/api";
+import type { Id } from "~convex/dataModel";
 
 type FormationEditorRow = {
   id: string;
   strikers: StudentItem[];
   specials: StudentItem[];
+  label?: FormationRowLabel;
 };
+
+function compareFormationRowLabels(
+  a: FormationRowLabel | undefined,
+  b: FormationRowLabel | undefined,
+): boolean {
+  if (!a && !b) {
+    return true;
+  }
+
+  if (!a || !b) {
+    return false;
+  }
+
+  return (
+    a.text === b.text &&
+    a.side === b.side &&
+    a.fontSize === b.fontSize &&
+    a.color === b.color &&
+    a.shadowEnabled === b.shadowEnabled &&
+    a.shadowColor === b.shadowColor &&
+    a.shadowOpacity === b.shadowOpacity &&
+    a.shadowOffsetX === b.shadowOffsetX &&
+    a.shadowOffsetY === b.shadowOffsetY &&
+    a.shadowBlur === b.shadowBlur &&
+    a.shadowSpread === b.shadowSpread &&
+    a.distance === b.distance
+  );
+}
 
 function compareStudentItems(a: StudentItem[], b: StudentItem[]): boolean {
   if (a.length !== b.length) {
@@ -117,7 +153,8 @@ function compareFormationRows(
   for (let i = 0; i < a.length; ++i) {
     if (
       !compareStudentItems(a[i].strikers, b[i].strikers) ||
-      !compareStudentItems(a[i].specials, b[i].specials)
+      !compareStudentItems(a[i].specials, b[i].specials) ||
+      !compareFormationRowLabels(a[i].label, b[i].label)
     ) {
       return false;
     }
@@ -292,6 +329,33 @@ export function FormationEditor() {
     setActiveRowIndex(Math.min(idx, next.length - 1));
   }
 
+  function updateActiveRowLabel(patch: Partial<FormationRowLabel> | null) {
+    setRows((prev) =>
+      prev.map((row, i) => {
+        if (i !== activeRowIndex) {
+          return row;
+        }
+
+        if (patch === null) {
+          const { label: _label, ...rest } = row;
+          return rest;
+        }
+
+        return {
+          ...row,
+          label: createDefaultFormationRowLabel({
+            ...row.label,
+            ...patch,
+          }),
+        };
+      }),
+    );
+  }
+
+  const activeRowLabel = rows[activeRowIndex]?.label;
+  const labelEnabled = activeRowLabel !== undefined;
+  const labelControls = activeRowLabel ?? DEFAULT_FORMATIONATION_ROW_LABEL;
+
   async function getFormationImage() {
     if (!containerRef.current || generationInProgress) {
       return;
@@ -334,6 +398,24 @@ export function FormationEditor() {
     const rowsPayload = rows.map((row) => ({
       strikers: studentItemsToPersistedSlots(row.strikers),
       specials: studentItemsToPersistedSlots(row.specials),
+      ...(row.label?.text
+        ? {
+            label: {
+              text: row.label.text,
+              side: row.label.side,
+              fontSize: row.label.fontSize,
+              color: row.label.color,
+              shadowEnabled: row.label.shadowEnabled,
+              shadowColor: row.label.shadowColor,
+              shadowOpacity: row.label.shadowOpacity,
+              shadowOffsetX: row.label.shadowOffsetX,
+              shadowOffsetY: row.label.shadowOffsetY,
+              shadowBlur: row.label.shadowBlur,
+              shadowSpread: row.label.shadowSpread,
+              distance: row.label.distance,
+            },
+          }
+        : {}),
     }));
 
     const firstRow = rowsPayload[0] ?? { strikers: [], specials: [] };
@@ -473,11 +555,32 @@ export function FormationEditor() {
               },
             ];
 
-      const loadedRows: FormationEditorRow[] = sourceRows.map((row) => ({
-        id: uuid(),
-        strikers: persistedSlotsToStudentItems(row.strikers, allStudents),
-        specials: persistedSlotsToStudentItems(row.specials, allStudents),
-      }));
+      const loadedRows: FormationEditorRow[] = sourceRows.map((row) => {
+        const label =
+          "label" in row && row.label
+            ? createDefaultFormationRowLabel({
+                text: row.label.text,
+                side: row.label.side,
+                fontSize: row.label.fontSize,
+                color: row.label.color,
+                shadowEnabled: row.label.shadowEnabled,
+                shadowColor: row.label.shadowColor,
+                shadowOpacity: row.label.shadowOpacity,
+                shadowOffsetX: row.label.shadowOffsetX,
+                shadowOffsetY: row.label.shadowOffsetY,
+                shadowBlur: row.label.shadowBlur,
+                shadowSpread: row.label.shadowSpread,
+                distance: row.label.distance,
+              })
+            : undefined;
+
+        return {
+          id: uuid(),
+          strikers: persistedSlotsToStudentItems(row.strikers, allStudents),
+          specials: persistedSlotsToStudentItems(row.specials, allStudents),
+          ...(label ? { label } : {}),
+        };
+      });
 
       setNameUnchecked(query.data.name || "");
       setRowsUnchecked(loadedRows);
@@ -643,24 +746,25 @@ export function FormationEditor() {
         </div>
       ) : (
         <div className="flex w-full justify-center">
-          <div
+          <FormationRowsStack
             ref={containerRef}
-            className="inline-flex w-fit max-w-full flex-col items-center py-2"
-            style={{ gap: rowGap ?? 8 }}
-          >
-            {rows.map((row, rowIndex) => (
-              <FormationPreview
-                key={row.id}
-                strikers={row.strikers}
-                specials={row.specials}
-                displayOverline={displayOverline}
-                noDisplayRole={!displayRoleIcon}
-                groupsVertical={groupsVertical}
-                formationType={effectiveType}
-                editableConfig={editableConfigByRow[rowIndex]}
-              />
-            ))}
-          </div>
+            rowGap={rowGap ?? 8}
+            items={rows.map((row, rowIndex) => ({
+              key: row.id,
+              label: row.label,
+              children: (
+                <FormationPreview
+                  strikers={row.strikers}
+                  specials={row.specials}
+                  displayOverline={displayOverline}
+                  noDisplayRole={!displayRoleIcon}
+                  groupsVertical={groupsVertical}
+                  formationType={effectiveType}
+                  editableConfig={editableConfigByRow[rowIndex]}
+                />
+              ),
+            }))}
+          />
         </div>
       )}
 
@@ -771,6 +875,405 @@ export function FormationEditor() {
                   formationType={effectiveType}
                   onUpdateItem={updateItem}
                 />
+
+                <div className="flex flex-col gap-4 items-center border-t pt-4">
+                  <div className="flex gap-2 items-center">
+                    <Switch
+                      id="row-label-enabled"
+                      checked={labelEnabled}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          updateActiveRowLabel({});
+                        } else {
+                          updateActiveRowLabel(null);
+                        }
+                      }}
+                    />
+                    <Label htmlFor="row-label-enabled">
+                      {t("tools.formationDisplay.rowLabel.enabled")}
+                    </Label>
+                  </div>
+
+                  <div
+                    className={cn(
+                      "flex flex-col gap-4 w-full max-w-xl items-center",
+                      {
+                        "opacity-50 pointer-events-none": !labelEnabled,
+                      },
+                    )}
+                  >
+                    <div className="flex flex-col gap-2 w-full">
+                      <Label htmlFor="row-label-text">
+                        {t("tools.formationDisplay.rowLabel.text")}
+                      </Label>
+                      <Textarea
+                        id="row-label-text"
+                        value={labelControls.text}
+                        disabled={!labelEnabled}
+                        onChange={(e) =>
+                          updateActiveRowLabel({ text: e.target.value })
+                        }
+                        placeholder={t(
+                          "tools.formationDisplay.rowLabel.textPlaceholder",
+                        )}
+                        rows={2}
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap gap-4 items-center justify-center">
+                      <div className="flex gap-2 items-center">
+                        <Label className="shrink-0">
+                          {t("tools.formationDisplay.rowLabel.side")}
+                        </Label>
+                        <Select
+                          value={labelControls.side}
+                          disabled={!labelEnabled}
+                          onValueChange={(val) =>
+                            updateActiveRowLabel({
+                              side: val as FormationRowLabelSide,
+                            })
+                          }
+                        >
+                          <SelectTrigger className="w-[120px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="left">
+                              {t("tools.formationDisplay.rowLabel.sideLeft")}
+                            </SelectItem>
+                            <SelectItem value="right">
+                              {t("tools.formationDisplay.rowLabel.sideRight")}
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="flex gap-2 items-center">
+                        <Label
+                          className="shrink-0"
+                          htmlFor="row-label-font-size"
+                        >
+                          {t("tools.formationDisplay.rowLabel.fontSize")}
+                        </Label>
+                        <Input
+                          id="row-label-font-size"
+                          type="number"
+                          className="w-20"
+                          min={8}
+                          max={128}
+                          disabled={!labelEnabled}
+                          value={(
+                            labelControls.fontSize ??
+                            DEFAULT_FORMATIONATION_ROW_LABEL.fontSize
+                          ).toString()}
+                          onChange={(e) => {
+                            const n = Number.parseInt(e.target.value, 10);
+                            if (!Number.isNaN(n)) {
+                              updateActiveRowLabel({
+                                fontSize: Math.min(128, Math.max(8, n)),
+                              });
+                            }
+                          }}
+                        />
+                      </div>
+
+                      <div className="flex gap-2 items-center">
+                        <Label className="shrink-0" htmlFor="row-label-color">
+                          {t("tools.formationDisplay.rowLabel.color")}
+                        </Label>
+                        <Input
+                          id="row-label-color"
+                          type="color"
+                          disabled={!labelEnabled}
+                          value={
+                            labelControls.color ??
+                            DEFAULT_FORMATIONATION_ROW_LABEL.color
+                          }
+                          onChange={(e) =>
+                            updateActiveRowLabel({ color: e.target.value })
+                          }
+                          className="w-12 h-9 p-1 cursor-pointer"
+                        />
+                      </div>
+
+                      <div className="flex gap-2 items-center">
+                        <Label
+                          className="shrink-0"
+                          htmlFor="row-label-distance"
+                        >
+                          {t("tools.formationDisplay.rowLabel.distance")}
+                        </Label>
+                        <Input
+                          id="row-label-distance"
+                          type="number"
+                          className="w-20"
+                          min={0}
+                          max={200}
+                          disabled={!labelEnabled}
+                          value={(
+                            labelControls.distance ??
+                            DEFAULT_FORMATIONATION_ROW_LABEL.distance
+                          ).toString()}
+                          onChange={(e) => {
+                            const n = Number.parseInt(e.target.value, 10);
+                            if (!Number.isNaN(n)) {
+                              updateActiveRowLabel({
+                                distance: Math.min(200, Math.max(0, n)),
+                              });
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-4 w-full items-center">
+                      <div className="flex gap-2 items-center">
+                        <Switch
+                          id="row-label-shadow"
+                          checked={
+                            labelControls.shadowEnabled ??
+                            DEFAULT_FORMATIONATION_ROW_LABEL.shadowEnabled
+                          }
+                          disabled={!labelEnabled}
+                          onCheckedChange={(checked) =>
+                            updateActiveRowLabel({ shadowEnabled: checked })
+                          }
+                        />
+                        <Label htmlFor="row-label-shadow">
+                          {t("tools.formationDisplay.rowLabel.shadow")}
+                        </Label>
+                      </div>
+
+                      <div
+                        className={cn(
+                          "flex flex-wrap gap-4 items-center justify-center w-full",
+                          {
+                            "opacity-50 pointer-events-none": !(
+                              labelControls.shadowEnabled ??
+                              DEFAULT_FORMATIONATION_ROW_LABEL.shadowEnabled
+                            ),
+                          },
+                        )}
+                      >
+                        <div className="flex gap-2 items-center">
+                          <Label
+                            className="shrink-0"
+                            htmlFor="row-label-shadow-color"
+                          >
+                            {t("tools.formationDisplay.rowLabel.shadowColor")}
+                          </Label>
+                          <Input
+                            id="row-label-shadow-color"
+                            type="color"
+                            disabled={
+                              !labelEnabled ||
+                              !(
+                                labelControls.shadowEnabled ??
+                                DEFAULT_FORMATIONATION_ROW_LABEL.shadowEnabled
+                              )
+                            }
+                            value={
+                              labelControls.shadowColor ??
+                              DEFAULT_FORMATIONATION_ROW_LABEL.shadowColor
+                            }
+                            onChange={(e) =>
+                              updateActiveRowLabel({
+                                shadowColor: e.target.value,
+                              })
+                            }
+                            className="w-12 h-9 p-1 cursor-pointer"
+                          />
+                        </div>
+
+                        <div className="flex gap-2 items-center min-w-48">
+                          <Label
+                            className="shrink-0"
+                            htmlFor="row-label-shadow-opacity"
+                          >
+                            {t("tools.formationDisplay.rowLabel.shadowOpacity")}
+                          </Label>
+                          <Slider
+                            id="row-label-shadow-opacity"
+                            min={0}
+                            max={100}
+                            step={1}
+                            disabled={
+                              !labelEnabled ||
+                              !(
+                                labelControls.shadowEnabled ??
+                                DEFAULT_FORMATIONATION_ROW_LABEL.shadowEnabled
+                              )
+                            }
+                            value={[
+                              labelControls.shadowOpacity ??
+                                DEFAULT_FORMATIONATION_ROW_LABEL.shadowOpacity,
+                            ]}
+                            onValueChange={([value]) =>
+                              updateActiveRowLabel({ shadowOpacity: value })
+                            }
+                          />
+                          <span className="text-sm text-muted-foreground w-10 tabular-nums">
+                            {labelControls.shadowOpacity ??
+                              DEFAULT_FORMATIONATION_ROW_LABEL.shadowOpacity}
+                            %
+                          </span>
+                        </div>
+
+                        <div className="flex gap-4 items-center shrink-0">
+                          <div className="flex gap-2 items-center">
+                            <Label
+                              className="shrink-0"
+                              htmlFor="row-label-shadow-offset-x"
+                            >
+                              {t(
+                                "tools.formationDisplay.rowLabel.shadowOffsetX",
+                              )}
+                            </Label>
+                            <Input
+                              id="row-label-shadow-offset-x"
+                              type="number"
+                              className="w-20"
+                              min={-50}
+                              max={50}
+                              disabled={
+                                !labelEnabled ||
+                                !(
+                                  labelControls.shadowEnabled ??
+                                  DEFAULT_FORMATIONATION_ROW_LABEL.shadowEnabled
+                                )
+                              }
+                              value={(
+                                labelControls.shadowOffsetX ??
+                                DEFAULT_FORMATIONATION_ROW_LABEL.shadowOffsetX
+                              ).toString()}
+                              onChange={(e) => {
+                                const n = Number.parseInt(e.target.value, 10);
+                                if (!Number.isNaN(n)) {
+                                  updateActiveRowLabel({
+                                    shadowOffsetX: Math.min(
+                                      50,
+                                      Math.max(-50, n),
+                                    ),
+                                  });
+                                }
+                              }}
+                            />
+                          </div>
+
+                          <div className="flex gap-2 items-center">
+                            <Label
+                              className="shrink-0"
+                              htmlFor="row-label-shadow-offset-y"
+                            >
+                              {t(
+                                "tools.formationDisplay.rowLabel.shadowOffsetY",
+                              )}
+                            </Label>
+                            <Input
+                              id="row-label-shadow-offset-y"
+                              type="number"
+                              className="w-20"
+                              min={-50}
+                              max={50}
+                              disabled={
+                                !labelEnabled ||
+                                !(
+                                  labelControls.shadowEnabled ??
+                                  DEFAULT_FORMATIONATION_ROW_LABEL.shadowEnabled
+                                )
+                              }
+                              value={(
+                                labelControls.shadowOffsetY ??
+                                DEFAULT_FORMATIONATION_ROW_LABEL.shadowOffsetY
+                              ).toString()}
+                              onChange={(e) => {
+                                const n = Number.parseInt(e.target.value, 10);
+                                if (!Number.isNaN(n)) {
+                                  updateActiveRowLabel({
+                                    shadowOffsetY: Math.min(
+                                      50,
+                                      Math.max(-50, n),
+                                    ),
+                                  });
+                                }
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 items-center">
+                          <Label
+                            className="shrink-0"
+                            htmlFor="row-label-shadow-blur"
+                          >
+                            {t("tools.formationDisplay.rowLabel.shadowBlur")}
+                          </Label>
+                          <Input
+                            id="row-label-shadow-blur"
+                            type="number"
+                            className="w-20"
+                            min={0}
+                            max={50}
+                            disabled={
+                              !labelEnabled ||
+                              !(
+                                labelControls.shadowEnabled ??
+                                DEFAULT_FORMATIONATION_ROW_LABEL.shadowEnabled
+                              )
+                            }
+                            value={(
+                              labelControls.shadowBlur ??
+                              DEFAULT_FORMATIONATION_ROW_LABEL.shadowBlur
+                            ).toString()}
+                            onChange={(e) => {
+                              const n = Number.parseInt(e.target.value, 10);
+                              if (!Number.isNaN(n)) {
+                                updateActiveRowLabel({
+                                  shadowBlur: Math.min(50, Math.max(0, n)),
+                                });
+                              }
+                            }}
+                          />
+                        </div>
+
+                        <div className="flex gap-2 items-center">
+                          <Label
+                            className="shrink-0"
+                            htmlFor="row-label-shadow-spread"
+                          >
+                            {t("tools.formationDisplay.rowLabel.shadowSpread")}
+                          </Label>
+                          <Input
+                            id="row-label-shadow-spread"
+                            type="number"
+                            className="w-20"
+                            min={0}
+                            max={20}
+                            disabled={
+                              !labelEnabled ||
+                              !(
+                                labelControls.shadowEnabled ??
+                                DEFAULT_FORMATIONATION_ROW_LABEL.shadowEnabled
+                              )
+                            }
+                            value={(
+                              labelControls.shadowSpread ??
+                              DEFAULT_FORMATIONATION_ROW_LABEL.shadowSpread
+                            ).toString()}
+                            onChange={(e) => {
+                              const n = Number.parseInt(e.target.value, 10);
+                              if (!Number.isNaN(n)) {
+                                updateActiveRowLabel({
+                                  shadowSpread: Math.min(20, Math.max(0, n)),
+                                });
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </TabsContent>
 

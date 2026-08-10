@@ -1,4 +1,5 @@
 import type { StudentItem } from "@/app/formation-display/_components/formation-preview";
+import { hexToRgba } from "@/lib/canvas";
 import type { StarLevel, Student, UELevel } from "@/lib/types";
 import { v4 as uuid } from "uuid";
 
@@ -12,6 +13,93 @@ export type PersistedFormationStudentSlot = {
   borrowed?: boolean;
   level?: number;
 };
+
+export type FormationRowLabelSide = "left" | "right";
+
+export type FormationRowLabel = {
+  text: string;
+  side: FormationRowLabelSide;
+  fontSize?: number;
+  color?: string;
+  shadowEnabled?: boolean;
+  shadowColor?: string;
+  shadowOpacity?: number;
+  shadowOffsetX?: number;
+  shadowOffsetY?: number;
+  shadowBlur?: number;
+  shadowSpread?: number;
+  distance?: number;
+};
+
+export type FormationRowLabelDefaults = Required<FormationRowLabel>;
+
+export const DEFAULT_FORMATIONATION_ROW_LABEL: FormationRowLabelDefaults = {
+  text: "",
+  side: "right",
+  fontSize: 24,
+  color: "#ffffff",
+  shadowEnabled: true,
+  shadowColor: "#000000",
+  shadowOpacity: 100,
+  shadowOffsetX: 0,
+  shadowOffsetY: 0,
+  shadowBlur: 0,
+  shadowSpread: 1,
+  distance: 16,
+};
+
+export function createDefaultFormationRowLabel(
+  overrides?: Partial<FormationRowLabel>,
+): FormationRowLabelDefaults {
+  return {
+    ...DEFAULT_FORMATIONATION_ROW_LABEL,
+    ...overrides,
+  };
+}
+
+export function formationRowLabelTextShadow(
+  label: Pick<
+    FormationRowLabel,
+    | "shadowColor"
+    | "shadowOpacity"
+    | "shadowOffsetX"
+    | "shadowOffsetY"
+    | "shadowBlur"
+    | "shadowSpread"
+  > = {},
+): string {
+  const color =
+    label.shadowColor ?? DEFAULT_FORMATIONATION_ROW_LABEL.shadowColor;
+  const opacity =
+    label.shadowOpacity ?? DEFAULT_FORMATIONATION_ROW_LABEL.shadowOpacity;
+  const offsetX =
+    label.shadowOffsetX ?? DEFAULT_FORMATIONATION_ROW_LABEL.shadowOffsetX;
+  const offsetY =
+    label.shadowOffsetY ?? DEFAULT_FORMATIONATION_ROW_LABEL.shadowOffsetY;
+  const blur = label.shadowBlur ?? DEFAULT_FORMATIONATION_ROW_LABEL.shadowBlur;
+  const spread =
+    label.shadowSpread ?? DEFAULT_FORMATIONATION_ROW_LABEL.shadowSpread;
+
+  const rgba = hexToRgba(color, opacity);
+  const layers: string[] = [];
+
+  // CSS text-shadow has no spread; approximate outline thickness with directional offsets.
+  if (spread > 0) {
+    const steps = 8;
+    for (let i = 0; i < steps; i++) {
+      const angle = (i / steps) * Math.PI * 2;
+      const x = Math.round(Math.cos(angle) * spread * 100) / 100;
+      const y = Math.round(Math.sin(angle) * spread * 100) / 100;
+      layers.push(`${x}px ${y}px 0px ${rgba}`);
+    }
+  }
+
+  if (offsetX !== 0 || offsetY !== 0 || blur > 0 || spread <= 0) {
+    layers.push(`${offsetX}px ${offsetY}px ${blur}px ${rgba}`);
+  }
+
+  return layers.join(", ");
+}
 
 export function persistedSlotsToStudentItems(
   slots: PersistedFormationStudentSlot[],

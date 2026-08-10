@@ -560,6 +560,25 @@
     "removeRow": "Remove row",
     "rowSpacing": "Row spacing (px)",
 
+    "rowLabel": {
+      "enabled": "Row text",
+      "text": "Text",
+      "textPlaceholder": "Label for this row…",
+      "side": "Side",
+      "sideLeft": "Left",
+      "sideRight": "Right",
+      "fontSize": "Font size (px)",
+      "color": "Font color",
+      "distance": "Distance (px)",
+      "shadow": "Text shadow",
+      "shadowColor": "Shadow color",
+      "shadowOpacity": "Opacity",
+      "shadowOffsetX": "Offset X",
+      "shadowOffsetY": "Offset Y",
+      "shadowBlur": "Blur",
+      "shadowSpread": "Spread"
+    },
+
     "formationName": "Formation Name",
     "updateFormation": "Update Formation",
     "saveFormation": "Save Formation",
