@@ -1,0 +1,500 @@
+"use client";
+
+import { SessionAnalytics } from "@/app/user/recruitment/_components/session-analytics";
+import { MessageBox } from "@/components/common/message-box";
+import { StudentPicker } from "@/components/common/student-picker";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { useStudents } from "@/hooks/use-students";
+import {
+  RECRUITMENT_COLORS,
+  type RecruitmentPickup,
+  type RecruitmentSessionInput,
+  calculateRecruitmentStats,
+} from "@/lib/recruitment";
+import { buildStudentIconUrl } from "@/lib/url";
+import { useMutation, useQuery } from "convex/react";
+import {
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  PlusIcon,
+  SaveIcon,
+  Trash2Icon,
+  XIcon,
+} from "lucide-react";
+import { useTranslations } from "next-intl";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { api } from "~convex/api";
+import type { Id } from "~convex/dataModel";
+
+type Props = { accountId: string; sessionId?: string };
+
+export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
+  const t = useTranslations();
+  const router = useRouter();
+  const { students } = useStudents();
+  const accountResult = useQuery(api.recruitment.getAccount, {
+    accountId: accountId as Id<"recruitmentAccount">,
+  });
+  const sessionResult = useQuery(
+    api.recruitment.getSession,
+    sessionId ? { sessionId: sessionId as Id<"recruitmentSession"> } : "skip",
+  );
+  const createSession = useMutation(api.recruitment.createSession);
+  const updateSession = useMutation(api.recruitment.updateSession);
+  const deleteSession = useMutation(api.recruitment.deleteSession);
+  const [name, setName] = useState("");
+  const [date, setDate] = useState<Date>(new Date());
+  const [datePopoverOpen, setDatePopoverOpen] = useState(false);
+  const [kind, setKind] = useState<"permanent" | "limited">("limited");
+  const [isFestBanner, setIsFestBanner] = useState(false);
+  const [startCharge, setStartCharge] = useState(0);
+  const [previousTickets, setPreviousTickets] = useState(0);
+  const [rebateTicketsUsed, setRebateTicketsUsed] = useState<number>();
+  const [totalPulls, setTotalPulls] = useState(0);
+  const [threeStarCount, setThreeStarCount] = useState(0);
+  const [pickups, setPickups] = useState<RecruitmentPickup[]>([]);
+
+  useEffect(() => {
+    if (sessionResult) {
+      setName(sessionResult.name);
+      setDate(new Date(sessionResult.date));
+      setKind(sessionResult.kind);
+      setIsFestBanner(sessionResult.isFestBanner ?? false);
+      setStartCharge(sessionResult.startCharge);
+      setPreviousTickets(sessionResult.rebateTicketsFromPreviousSession);
+      setRebateTicketsUsed(sessionResult.rebateTicketsUsed);
+      setTotalPulls(sessionResult.totalPulls);
+      setThreeStarCount(sessionResult.threeStarCount);
+      setPickups(sessionResult.pickupsObtained);
+    } else if (accountResult && !sessionId) {
+      const previous = accountResult.sessions.find(
+        (session) => session.kind === kind,
+      );
+      setStartCharge(
+        kind === "limited"
+          ? accountResult.account.limitedCharge
+          : accountResult.account.permanentCharge,
+      );
+      setPreviousTickets(previous?.stats.remainingRebateTickets ?? 0);
+      setRebateTicketsUsed(undefined);
+    }
+  }, [sessionResult, accountResult, sessionId, kind]);
+
+  const input: RecruitmentSessionInput = {
+    startCharge,
+    totalPulls,
+    threeStarCount,
+    rebateTicketsFromPreviousSession: previousTickets,
+    rebateTicketsUsed,
+    pickupsObtained: pickups,
+  };
+  const stats = useMemo(() => {
+    try {
+      return { value: calculateRecruitmentStats(input), error: null };
+    } catch (error) {
+      return {
+        value: null,
+        error: error instanceof Error ? error.message : "Invalid session",
+      };
+    }
+  }, [
+    startCharge,
+    totalPulls,
+    threeStarCount,
+    previousTickets,
+    rebateTicketsUsed,
+    pickups,
+  ]);
+  if (accountResult === undefined || (sessionId && sessionResult === undefined))
+    return <MessageBox>{t("common.loading")}</MessageBox>;
+  if (sessionId && !sessionResult)
+    return <MessageBox>{t("tools.recruitment.failedToLoad")}</MessageBox>;
+
+  async function save() {
+    if (!stats.value || !name.trim()) return;
+    try {
+      if (sessionId) {
+        await updateSession({
+          sessionId: sessionId as Id<"recruitmentSession">,
+          name: name.trim(),
+          date: date.getTime(),
+          kind,
+          isFestBanner,
+          startCharge,
+          totalPulls,
+          pickupsObtained: pickups,
+          threeStarCount,
+          rebateTicketsUsed: stats.value.rebateTicketsUsed,
+        });
+      } else {
+        await createSession({
+          recruitmentAccountId: accountId as Id<"recruitmentAccount">,
+          name: name.trim(),
+          date: date.getTime(),
+          kind,
+          isFestBanner,
+          startCharge,
+          totalPulls,
+          pickupsObtained: pickups,
+          threeStarCount,
+          rebateTicketsUsed: stats.value.rebateTicketsUsed,
+        });
+      }
+      toast.success(t("tools.recruitment.toasts.sessionSaved"));
+      router.push(`/user/recruitment/${accountId}`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t("tools.recruitment.toasts.sessionSaveFail"),
+      );
+    }
+  }
+
+  async function remove() {
+    if (!sessionId || !confirm(t("tools.recruitment.confirmDelete"))) return;
+    try {
+      await deleteSession({
+        sessionId: sessionId as Id<"recruitmentSession">,
+      });
+      router.push(`/user/recruitment/${accountId}`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t("tools.recruitment.toasts.sessionDeleteFail"),
+      );
+    }
+  }
+
+  return (
+    <div className="flex max-w-3xl flex-col gap-6">
+      <Button variant="ghost" asChild className="self-start">
+        <Link href={`/user/recruitment/${accountId}`}>
+          <ChevronLeftIcon />
+          {t("common.backTo", {
+            destination: t("tools.recruitment.account"),
+          })}
+        </Link>
+      </Button>
+      <div>
+        <h1 className="text-xl font-bold">
+          {sessionId
+            ? t("tools.recruitment.editSession")
+            : t("tools.recruitment.newSession")}
+        </h1>
+      </div>
+      <fieldset className="flex flex-col gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-2">
+            <Label>{t("tools.recruitment.sessionName")}</Label>
+            <Input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label>{t("tools.recruitment.date")}</Label>
+            <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="justify-between"
+                >
+                  {date.toLocaleDateString()}
+                  <ChevronDownIcon />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-auto overflow-hidden p-0"
+                align="start"
+              >
+                <Calendar
+                  mode="single"
+                  selected={date}
+                  captionLayout="dropdown"
+                  onSelect={(selectedDate) => {
+                    if (selectedDate) setDate(selectedDate);
+                    setDatePopoverOpen(false);
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+        {!sessionId && (
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              style={
+                kind === "permanent"
+                  ? {
+                      borderColor: RECRUITMENT_COLORS.base.labelBorderActive,
+                      backgroundColor: RECRUITMENT_COLORS.base.trackAccent,
+                      color: RECRUITMENT_COLORS.base.labelTextActive,
+                    }
+                  : undefined
+              }
+              onClick={() => setKind("permanent")}
+            >
+              {t("tools.recruitment.permanent")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              style={
+                kind === "limited"
+                  ? {
+                      borderColor: RECRUITMENT_COLORS.limited.labelBorderActive,
+                      backgroundColor: RECRUITMENT_COLORS.limited.trackAccent,
+                      color: RECRUITMENT_COLORS.limited.labelTextActive,
+                    }
+                  : undefined
+              }
+              onClick={() => setKind("limited")}
+            >
+              {t("tools.recruitment.limited")}
+            </Button>
+          </div>
+        )}
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={isFestBanner}
+            onChange={(event) => setIsFestBanner(event.target.checked)}
+          />
+          {t("tools.recruitment.festBanner")}
+        </label>
+        <div className="grid gap-4 sm:grid-cols-4">
+          <div className="flex flex-col gap-2">
+            <Label>{t("tools.recruitment.startCharge")}</Label>
+            <Input
+              type="number"
+              min={0}
+              max={200}
+              value={startCharge}
+              onChange={(event) => setStartCharge(Number(event.target.value))}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("tools.recruitment.startChargeHint")}
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label>{t("tools.recruitment.totalPulls")}</Label>
+            <Input
+              type="number"
+              min={0}
+              value={totalPulls}
+              onChange={(event) => setTotalPulls(Number(event.target.value))}
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("tools.recruitment.totalPullsHint")}
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label>{t("tools.recruitment.threeStars")}</Label>
+            <Input
+              type="number"
+              min={0}
+              value={threeStarCount}
+              onChange={(event) =>
+                setThreeStarCount(Number(event.target.value))
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("tools.recruitment.threeStarsHint")}
+            </p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <Label>{t("tools.recruitment.ticketsUsed")}</Label>
+            <Input
+              type="number"
+              min={0}
+              value={rebateTicketsUsed ?? stats.value?.rebateTicketsUsed ?? 0}
+              onChange={(event) =>
+                setRebateTicketsUsed(Number(event.target.value))
+              }
+            />
+            <p className="text-xs text-muted-foreground">
+              {t("tools.recruitment.ticketsUsedHint")}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <Label>{t("tools.recruitment.pickups")}</Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setPickups([...pickups, { charge: 1, studentId: "" }])
+              }
+            >
+              <PlusIcon />
+              {t("tools.recruitment.addPickup")}
+            </Button>
+          </div>
+          {pickups.map((pickup, index) => (
+            <div
+              className="grid items-center gap-3 rounded-lg border bg-card p-3 shadow-sm sm:grid-cols-[auto_minmax(0,1fr)_7rem_auto]"
+              key={`${index}-${pickup.studentId}`}
+            >
+              <span className="hidden size-7 place-items-center rounded-full bg-muted text-xs font-semibold text-muted-foreground sm:grid">
+                {index + 1}
+              </span>
+              <StudentPicker
+                onStudentSelected={(student) =>
+                  setPickups(
+                    pickups.map((item, i) =>
+                      i === index ? { ...item, studentId: student.id } : item,
+                    ),
+                  )
+                }
+              >
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-12 w-full justify-start px-2"
+                >
+                  {(() => {
+                    const student = students.find(
+                      (item) => item.id === pickup.studentId,
+                    );
+                    return student ? (
+                      <>
+                        <img
+                          src={buildStudentIconUrl(student)}
+                          alt=""
+                          className="size-10 rounded-full object-cover"
+                        />
+                        <span className="truncate">{student.name}</span>
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {t("common.selectStudent")}
+                      </span>
+                    );
+                  })()}
+                </Button>
+              </StudentPicker>
+              <div className="flex min-w-0 flex-col gap-1">
+                <Label className="text-xs text-muted-foreground">
+                  {t("tools.recruitment.pickupCharge")}
+                </Label>
+                <Input
+                  aria-label={t("tools.recruitment.pickupCharge")}
+                  type="number"
+                  min={1}
+                  max={200}
+                  value={pickup.charge}
+                  onChange={(event) =>
+                    setPickups(
+                      pickups.map((item, i) =>
+                        i === index
+                          ? { ...item, charge: Number(event.target.value) }
+                          : item,
+                      ),
+                    )
+                  }
+                />
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={t("tools.recruitment.removePickup")}
+                onClick={() =>
+                  setPickups(pickups.filter((_, i) => i !== index))
+                }
+              >
+                <XIcon />
+              </Button>
+            </div>
+          ))}
+        </div>
+      </fieldset>
+      <div className="grid gap-3 rounded-md border p-4 text-sm sm:grid-cols-3">
+        <div>
+          {t("tools.recruitment.endCharge")}:{" "}
+          <strong>{stats.value?.endCharge ?? "—"}</strong>
+        </div>
+        <div>
+          {t("tools.recruitment.softPity")}:{" "}
+          <strong>
+            {stats.value
+              ? `${stats.value.softPityWins}/${stats.value.softPityLosses}`
+              : "—"}
+          </strong>
+        </div>
+        <div>
+          {t("tools.recruitment.hardPity")}:{" "}
+          <strong>{stats.value?.hardPities ?? "—"}</strong>
+        </div>
+        <div>
+          {t("tools.recruitment.paidPulls")}:{" "}
+          <strong>{stats.value?.paidPulls ?? "—"}</strong>
+        </div>
+        <div>
+          {t("tools.recruitment.ticketsUsed")}:{" "}
+          <strong>{stats.value?.rebateTicketsUsed ?? "—"}</strong>
+        </div>
+        <div>
+          {t("tools.recruitment.ticketsRemaining")}:{" "}
+          <strong>{stats.value?.remainingRebateTickets ?? "—"}</strong>
+        </div>
+        <div>
+          {t("tools.recruitment.experiencedThreeStarRate")}:{" "}
+          <strong>
+            {stats.value
+              ? `${stats.value.experiencedThreeStarRate.toFixed(2)}%`
+              : "—"}
+          </strong>
+        </div>
+        <div>
+          {t("tools.recruitment.experiencedPURate")}:{" "}
+          <strong>
+            {stats.value ? `${stats.value.experiencedPURate.toFixed(2)}%` : "—"}
+          </strong>
+        </div>
+        <div>
+          {t("tools.recruitment.pullsPerPU")}:{" "}
+          <strong>{stats.value?.pullsPerPU?.toFixed(2) ?? "N/A"}</strong>
+        </div>
+        <div>
+          {t("tools.recruitment.pullsPerThreeStar")}:{" "}
+          <strong>{stats.value?.pullsPerThreeStar?.toFixed(2) ?? "N/A"}</strong>
+        </div>
+      </div>
+      {stats.error && <p className="text-sm text-destructive">{stats.error}</p>}
+      {stats.value && (
+        <SessionAnalytics stats={stats.value} pickups={pickups} />
+      )}
+      <div className="flex gap-2">
+        <Button onClick={save} disabled={!stats.value || !name.trim()}>
+          <SaveIcon />
+          {t("common.saveChanges")}
+        </Button>
+        {sessionId && (
+          <Button variant="destructive" onClick={remove}>
+            <Trash2Icon />
+            {t("common.delete")}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}

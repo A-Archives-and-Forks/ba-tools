@@ -11,6 +11,7 @@ import {
   IdCardIcon,
   ListOrderedIcon,
   RectangleEllipsisIcon,
+  SquareText,
   TrainTrackIcon,
   UsersIcon,
 } from "lucide-react";
@@ -96,6 +97,13 @@ export async function ToolsAndResources() {
       path: "/gacha-rate-stats",
       icon: <DicesIcon className="size-10 text-blue-400 shrink-0" />,
       description: t("static.home.toollist.gachaRateStats.description"),
+    },
+    {
+      name: t("static.home.toollist.recruitment.title"),
+      path: "/user/recruitment",
+      icon: <SquareText className="size-10 text-cyan-400 shrink-0" />,
+      description: t("static.home.toollist.recruitment.description"),
+      isNew: true,
     },
     {
       name: t("static.home.toollist.scenarioImageGenerator.title"),

@@ -20,6 +20,7 @@ import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as planaChat from "../planaChat.js";
 import type * as pvp from "../pvp.js";
+import type * as recruitment from "../recruitment.js";
 import type * as roster from "../roster.js";
 import type * as timeline from "../timeline.js";
 import type * as timelineGroup from "../timelineGroup.js";
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   "lib/auth": typeof lib_auth;
   planaChat: typeof planaChat;
   pvp: typeof pvp;
+  recruitment: typeof recruitment;
   roster: typeof roster;
   timeline: typeof timeline;
   timelineGroup: typeof timelineGroup;

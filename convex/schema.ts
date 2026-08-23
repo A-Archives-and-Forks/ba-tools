@@ -109,6 +109,58 @@ export const pvpFormationStudentItem = v.object({
   damage: v.optional(v.number()),
 });
 
+const recruitmentAggregateBucket = v.object({
+  sessionCount: v.number(),
+  totalPulls: v.number(),
+  paidPulls: v.number(),
+  totalThreeStars: v.number(),
+  totalPickups: v.number(),
+  rebatePulls: v.number(),
+  pyroxenesSaved: v.number(),
+  softPityWins: v.number(),
+  softPityLosses: v.number(),
+  hardPities: v.number(),
+  naturalPickups: v.number(),
+  softWinPickups: v.number(),
+  softLossPickups: v.number(),
+  hardPityPickups: v.number(),
+  pickupChargeHistogram: v.array(v.number()),
+});
+
+const recruitmentComputedStats = v.object({
+  endCharge: v.number(),
+  pickupCount: v.number(),
+  softPityWins: v.number(),
+  softPityLosses: v.number(),
+  hardPities: v.number(),
+  earnedRebateTickets: v.number(),
+  rebateTicketsUsed: v.number(),
+  remainingRebateTickets: v.number(),
+  paidPulls: v.number(),
+  experiencedThreeStarRate: v.number(),
+  experiencedPURate: v.number(),
+  pullsPerPU: v.optional(v.number()),
+  pullsPerThreeStar: v.optional(v.number()),
+  rebatePulls: v.number(),
+  pyroxenesSpent: v.number(),
+  pyroxenesSaved: v.number(),
+  pickupClassifications: v.array(
+    v.object({
+      charge: v.number(),
+      studentId: v.string(),
+      classification: v.union(
+        v.literal("beforeSoftPity"),
+        v.literal("softWin"),
+        v.literal("afterSoftPity"),
+        v.literal("hardPity"),
+        // Legacy values retained for existing computed statistics.
+        v.literal("natural"),
+        v.literal("afterSoftLoss"),
+      ),
+    }),
+  ),
+});
+
 export const planaMessagePart = v.object({
   type: v.literal("text"),
   text: v.string(),
@@ -273,6 +325,66 @@ export default defineSchema({
   })
     .index("by_userId", ["userId"])
     .index("by_seasonId", ["seasonId"]),
+
+  recruitmentAccount: defineTable({
+    userId: v.id("users"),
+    name: v.string(),
+    gameServer: v.union(...GAME_SERVERS.map((level) => v.literal(level))),
+
+    // number of permanent charge points, auto-populated from the last session
+    permanentCharge: v.number(),
+
+    // number of limited charge points, auto-populated from the last session
+    limitedCharge: v.number(),
+    aggregates: v.optional(
+      v.object({
+        permanent: recruitmentAggregateBucket,
+        limited: recruitmentAggregateBucket,
+        fest: recruitmentAggregateBucket,
+      }),
+    ),
+    latestPermanentSessionId: v.optional(v.id("recruitmentSession")),
+    latestLimitedSessionId: v.optional(v.id("recruitmentSession")),
+  }).index("by_userId", ["userId"]),
+
+  recruitmentSession: defineTable({
+    userId: v.id("users"),
+    recruitmentAccountId: v.id("recruitmentAccount"),
+    name: v.string(),
+    date: v.number(),
+    kind: v.union(v.literal("permanent"), v.literal("limited")),
+
+    // whether this session took place on a fest banner with doubled 3★ rates
+    isFestBanner: v.optional(v.boolean()),
+
+    // number of rebate tickets left over from the previous pulling session
+    rebateTicketsFromPreviousSession: v.number(),
+
+    // manually adjustable number of rebate tickets used in this session
+    rebateTicketsUsed: v.optional(v.number()),
+
+    // number of charge points at the start of the session, generally auto
+    // populated from the recruitment account
+    startCharge: v.number(),
+
+    // total number of pulls (including rebate tickets)
+    totalPulls: v.number(),
+
+    // list of PUs obtained in the session, including dupes + at what charge
+    // you obtained them
+    pickupsObtained: v.array(
+      v.object({
+        charge: v.number(),
+        studentId: v.string(),
+      }),
+    ),
+
+    threeStarCount: v.number(),
+    computedStats: v.optional(recruitmentComputedStats),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_recruitmentAccountId", ["recruitmentAccountId"])
+    .index("by_recruitmentAccountId_date", ["recruitmentAccountId", "date"]),
 
   donation: defineTable({
     supporterName: v.optional(v.string()),

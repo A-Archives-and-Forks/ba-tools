@@ -43,6 +43,7 @@ import {
   MessageCircleHeartIcon,
   RectangleEllipsisIcon,
   ShieldIcon,
+  SquareText,
   TrainTrackIcon,
   UsersIcon,
 } from "lucide-react";
@@ -235,6 +236,11 @@ export function AppSidebar() {
       href: "/user/rosters",
       text: t("common.header.nav.misc.roster"),
       icon: IdCardIcon,
+    },
+    {
+      href: "/user/recruitment",
+      text: t("common.header.nav.misc.recruitment"),
+      icon: SquareText,
     },
     {
       href: "/title-generator",

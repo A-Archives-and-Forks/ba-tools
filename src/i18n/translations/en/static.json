@@ -46,6 +46,10 @@
         "title": "Gacha Rate Stats",
         "description": "Track the 3* rate of a pulling session in real time. You may use it in gacha videos or streams to display your luck (or lack thereof)."
       },
+      "recruitment": {
+        "title": "Recruitment Tracker (BETA)",
+        "description": "Track your pick-ups, Recruitment Charge, and recruitment history across your game accounts."
+      },
       "birthdays": {
         "title": "Student Birthdays",
         "description": "View the birthdays of all students in the game. Search for specific students and view current and upcoming birthdays."
@@ -56,7 +60,7 @@
       },
       "glBanners": {
         "title": "Upcoming Global Banners",
-        "description": "Track the upcoming rate-up banners that are going to be available in the Global version. Data is based on JP banners and may change."
+        "description": "Track the upcoming pick-up banners that are going to be available in the Global version. Data is based on JP banners and may change."
       }
     },
 

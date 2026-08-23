@@ -26,6 +26,7 @@ export const CHANGELOG_SCOPES = {
   mcp: "MCP Server",
   birthdays: "Student Birthdays",
   roster: "My Roster",
+  recruitment: "Recruitment Tracker",
 } as const;
 
 type ChangelogScope = (typeof CHANGELOG_SCOPES)[keyof typeof CHANGELOG_SCOPES];
@@ -44,12 +45,24 @@ export type ChangelogItemData = {
 
 export const CHANGELOG: ChangelogItemData[] = [
   {
+    date: "August 23, 2026",
+    features: [
+      {
+        scope: CHANGELOG_SCOPES.recruitment,
+        description: "Added Recruitment Tracker tool.",
+      },
+    ],
+    fixes: [],
+    changes: [],
+  },
+  {
     date: "August 10, 2026",
     features: [
       {
         scope: CHANGELOG_SCOPES.formationDisplay,
-        description: "Added ability to specify custom text around formation rows.",
-      }
+        description:
+          "Added ability to specify custom text around formation rows.",
+      },
     ],
     fixes: [],
     changes: [],
