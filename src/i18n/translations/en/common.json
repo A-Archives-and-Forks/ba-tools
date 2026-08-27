@@ -188,6 +188,7 @@
     "Valkyrie": "Valkyrie Police School",
     "Highlander": "Highlander Railroad Academy",
     "WildHunt": "Wildhunt Art Academy",
+    "Odyssey": "Odyssey Maritime School",
     "ETC": "ETC",
     "Tokiwadai": "Tokiwadai Middle School",
     "Sakugawa": "Sakugawa Middle School"
@@ -243,6 +244,7 @@
     "NicomediasTroop": "Nicomedia Troop",
     "PublishingDepartment": "Publishing Department",
     "FoxSquad": "FOX Squad",
+    "DivingClub": "Diving Club",
     "EmptyClub": "None"
   },
 

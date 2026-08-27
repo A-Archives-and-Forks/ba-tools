@@ -175,6 +175,7 @@
     "Valkyrie": "ヴァルキューレ警察学校",
     "Highlander": "ハイランダー鉄道学園",
     "WildHunt": "ワイルドハント芸術学院",
+    "Odyssey": "オデュッセイア海洋高等学校",
     "ETC": "その他",
     "Tokiwadai": "常盤台中学",
     "Sakugawa": "柵川中学"
@@ -229,6 +230,7 @@
     "NicomediasTroop": "ニコメディアトゥループ",
     "PublishingDepartment": "出版部",
     "FoxSquad": "FOX小隊",
+    "DivingClub": "ダイビング部",
     "EmptyClub": "無し"
   },
   "raids": {
