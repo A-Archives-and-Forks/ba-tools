@@ -14,7 +14,8 @@ export type BossEmblemName =
   | "HoverCraft"
   | "Kaitenger"
   | "Perorozilla"
-  | "Shirokuro";
+  | "Shirokuro"
+  | "HOD";
 
 export type BossEmblemTerrain = "Indoor" | "Outdoor" | "Street";
 
@@ -94,6 +95,10 @@ export const BOSS_EMBLEM_NAMES: EmblemConfigItem<BossEmblemName>[] = [
     name: "Chesed",
     id: "Chesed",
   },
+  {
+    name: "Hod",
+    id: "HOD",
+  },
 ];
 
 export const VALID_BOSS_EMBLEM_COMBINATIONS: {
@@ -105,6 +110,7 @@ export const VALID_BOSS_EMBLEM_COMBINATIONS: {
   { name: "Chesed", terrain: "Outdoor" },
   { name: "Goz", terrain: "Outdoor" },
   { name: "Hieronymus", terrain: "Street" },
+  { name: "HOD", terrain: "Indoor" },
   { name: "HoverCraft", terrain: "Outdoor" },
   { name: "Kaitenger", terrain: "Street" },
   { name: "Perorozilla", terrain: "Outdoor" },
@@ -172,6 +178,10 @@ export const GROUP_EMBLEM_SCHOOLS: EmblemConfigItem<School>[] = [
     name: "Wildhunt Art Academy",
     id: "WildHunt",
   },
+  {
+    name: "Odyssey Maritime School",
+    id: "Odyssey",
+  },
 ];
 
 export const GROUP_EMBLEM_CLUBS: EmblemConfigItem<Club>[] = [
@@ -220,6 +230,10 @@ export const GROUP_EMBLEM_CLUBS: EmblemConfigItem<Club>[] = [
   { id: "FreightLogisticsDepartment", name: "Freight Logistics Department" },
   { id: "OccultClub", name: "Occult Research Society" },
   { id: "FreeTradeCartel", name: "Special Trade Department" },
+  { id: "NicomediasTroop", name: "Nicomedia Troop" },
+  { id: "PublishingDepartment", name: "Publishing Department" },
+  { id: "FoxSquad", name: "FOX Squad" },
+  { id: "DivingClub", name: "Diving Club" },
 ];
 
 export const GROUP_EMBLEM_VALID_COMBINATIONS: {
@@ -274,6 +288,10 @@ export const GROUP_EMBLEM_VALID_COMBINATIONS: {
   },
   { club: "OccultClub", school: "WildHunt" },
   { club: "FreeTradeCartel", school: "WildHunt" },
+  { club: "NicomediasTroop", school: "Arius" },
+  { club: "PublishingDepartment", school: "RedWinter" },
+  { club: "FoxSquad", school: "SRT" },
+  { club: "DivingClub", school: "Odyssey" },
 ];
 
 export const DEFAULT_BASIC_EMBLEM_TEXTS = [

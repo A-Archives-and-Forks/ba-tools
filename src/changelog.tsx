@@ -45,6 +45,27 @@ export type ChangelogItemData = {
 
 export const CHANGELOG: ChangelogItemData[] = [
   {
+    date: "August 27, 2026",
+    features: [
+      {
+        scope: CHANGELOG_SCOPES.titleGenerator,
+        description: "Added emblems for Hod Indoor raid.",
+      },
+      {
+        scope: CHANGELOG_SCOPES.titleGenerator,
+        description:
+          "Added Odyssey Maritime School as a selectable school emblem category.",
+      },
+      {
+        scope: CHANGELOG_SCOPES.titleGenerator,
+        description:
+          "Added the following clubs as selectable group emblem categories: Nicomedia's Troop, Publishing Department, FOX Squad, Diving Club.",
+      },
+    ],
+    fixes: [],
+    changes: [],
+  },
+  {
     date: "August 23, 2026",
     features: [
       {
