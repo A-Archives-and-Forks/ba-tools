@@ -61,6 +61,11 @@ export const CHANGELOG: ChangelogItemData[] = [
         description:
           "Added the following clubs as selectable group emblem categories: Nicomedia's Troop, Publishing Department, FOX Squad, Diving Club.",
       },
+      {
+        scope: CHANGELOG_SCOPES.inventoryManagement,
+        description:
+          'Added inventory management preset for "Dive into OCEAN!" (Odyssey) event.',
+      },
     ],
     fixes: [],
     changes: [],

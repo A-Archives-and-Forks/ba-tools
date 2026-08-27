@@ -198,6 +198,49 @@ export const ITEMS = {
     width: 2,
     height: 2,
   },
+
+  // Odysseya Event
+  seahorse: {
+    name: "Seahorse",
+    width: 3,
+    height: 1,
+  },
+
+  seaweed: {
+    name: "Seaweed",
+    width: 1,
+    height: 4,
+  },
+
+  seaUrchin: {
+    name: "Sea Urchin",
+    width: 3,
+    height: 2,
+  },
+
+  seaSlug: {
+    name: "Sea Slug",
+    width: 1,
+    height: 2,
+  },
+
+  starfish: {
+    name: "Starfish",
+    width: 2,
+    height: 2,
+  },
+
+  seashell: {
+    name: "Seashell",
+    width: 4,
+    height: 2,
+  },
+
+  turtleShell: {
+    name: "Turtle Shell",
+    width: 3,
+    height: 3,
+  },
 } as const satisfies Record<
   string,
   Omit<InventoryManagementPresetItem, "count">
@@ -524,6 +567,90 @@ export const inventoryManagementPresets: InventoryManagementPreset[] = [
         withCounts(ITEMS.shoppingBag, 2),
         withCounts(ITEMS.toyBox, 1),
         withCounts(ITEMS.gamingMagazine, 1),
+      ],
+    ],
+  },
+
+  {
+    id: "odyssey",
+    name: "Dive into OCEAN! (Odyssey Event)",
+    rounds: [
+      [
+        withCounts(ITEMS.seahorse, 4),
+        withCounts(ITEMS.seaweed, 3),
+        withCounts(ITEMS.seaUrchin, 1),
+      ],
+
+      [
+        withCounts(ITEMS.seaSlug, 3),
+        withCounts(ITEMS.starfish, 4),
+        withCounts(ITEMS.seashell, 1),
+      ],
+
+      [
+        withCounts(ITEMS.seahorse, 3),
+        withCounts(ITEMS.starfish, 3),
+        withCounts(ITEMS.turtleShell, 1),
+      ],
+
+      [
+        withCounts(ITEMS.seahorse, 2),
+        withCounts(ITEMS.starfish, 3),
+        withCounts(ITEMS.seaUrchin, 2),
+      ],
+
+      [
+        withCounts(ITEMS.seahorse, 4),
+        withCounts(ITEMS.seaweed, 3),
+        withCounts(ITEMS.seaUrchin, 1),
+      ],
+
+      [
+        withCounts(ITEMS.seaSlug, 3),
+        withCounts(ITEMS.starfish, 4),
+        withCounts(ITEMS.seashell, 1),
+      ],
+
+      [
+        withCounts(ITEMS.seahorse, 3),
+        withCounts(ITEMS.starfish, 3),
+        withCounts(ITEMS.turtleShell, 1),
+      ],
+
+      [
+        withCounts(ITEMS.seahorse, 2),
+        withCounts(ITEMS.starfish, 3),
+        withCounts(ITEMS.seaUrchin, 2),
+      ],
+
+      [
+        withCounts(ITEMS.seahorse, 4),
+        withCounts(ITEMS.seaweed, 3),
+        withCounts(ITEMS.seaUrchin, 1),
+      ],
+
+      [
+        withCounts(ITEMS.seaSlug, 3),
+        withCounts(ITEMS.starfish, 4),
+        withCounts(ITEMS.seashell, 1),
+      ],
+
+      [
+        withCounts(ITEMS.seahorse, 3),
+        withCounts(ITEMS.starfish, 3),
+        withCounts(ITEMS.turtleShell, 1),
+      ],
+
+      [
+        withCounts(ITEMS.seahorse, 2),
+        withCounts(ITEMS.starfish, 3),
+        withCounts(ITEMS.seaUrchin, 2),
+      ],
+
+      [
+        withCounts(ITEMS.seahorse, 2),
+        withCounts(ITEMS.seaweed, 2),
+        withCounts(ITEMS.seashell, 2),
       ],
     ],
   },
