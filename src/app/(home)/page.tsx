@@ -33,6 +33,15 @@ export default async function Home() {
 
   return (
     <article className="flex flex-col gap-4 max-w-4xl mx-auto">
+      <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-md p-4">
+        <p className="text-yellow-500 text-sm">
+          <strong>Notice:</strong> I am aware that the website is not accessible
+          on certain ISPs in the United States and I'm currently working on a
+          solution. The issue likely stems from a false positive in the security
+          filters of said ISPs. Thank you for your patience and understanding.
+        </p>
+      </div>
+
       <h1 className="text-4xl">{t("static.home.welcome")}</h1>
 
       <p>
