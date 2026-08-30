@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  NumericInput,
+  type NumericInputValue,
+} from "@/components/ui/numeric-input";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -52,11 +56,11 @@ export function RecruitmentAccounts() {
   const createAccount = useMutation(api.recruitment.createAccount);
   const [name, setName] = useState("");
   const [gameServer, setGameServer] = useState<GameServer>("JP");
-  const [permanentCharge, setPermanentCharge] = useState(0);
-  const [limitedCharge, setLimitedCharge] = useState(0);
+  const [permanentCharge, setPermanentCharge] = useState<NumericInputValue>(0);
+  const [limitedCharge, setLimitedCharge] = useState<NumericInputValue>(0);
 
   async function handleCreate() {
-    if (!name.trim()) return;
+    if (!name.trim() || permanentCharge === "" || limitedCharge === "") return;
     try {
       await createAccount({
         name: name.trim(),
@@ -104,26 +108,24 @@ export function RecruitmentAccounts() {
           <Label htmlFor="permanent-charge">
             {t("tools.recruitment.permanent")}
           </Label>
-          <Input
+          <NumericInput
             id="permanent-charge"
-            type="number"
             min={0}
             max={200}
             value={permanentCharge}
-            onChange={(event) => setPermanentCharge(Number(event.target.value))}
+            onValueChange={setPermanentCharge}
           />
         </div>
         <div className="flex w-24 flex-col gap-2">
           <Label htmlFor="limited-charge">
             {t("tools.recruitment.limited")}
           </Label>
-          <Input
+          <NumericInput
             id="limited-charge"
-            type="number"
             min={0}
             max={200}
             value={limitedCharge}
-            onChange={(event) => setLimitedCharge(Number(event.target.value))}
+            onValueChange={setLimitedCharge}
           />
         </div>
         <div className="flex flex-col gap-2">
@@ -144,7 +146,12 @@ export function RecruitmentAccounts() {
             </SelectContent>
           </Select>
         </div>
-        <Button onClick={handleCreate} disabled={!name.trim()}>
+        <Button
+          onClick={handleCreate}
+          disabled={
+            !name.trim() || permanentCharge === "" || limitedCharge === ""
+          }
+        >
           {t("common.create")}
         </Button>
       </div>

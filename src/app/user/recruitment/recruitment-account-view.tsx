@@ -6,6 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  NumericInput,
+  type NumericInputValue,
+} from "@/components/ui/numeric-input";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -14,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { RECRUITMENT_COLORS } from "@/lib/recruitment";
 import { GAME_SERVERS, GAME_SERVER_NAMES, type GameServer } from "@/lib/types";
+import { buildStudentIconUrlFromId } from "@/lib/url";
 import { useQuery } from "convex/react";
 import { useMutation } from "convex/react";
 import { ChevronLeftIcon, PlusIcon, SaveIcon } from "lucide-react";
@@ -32,8 +37,8 @@ export function RecruitmentAccountView({ accountId }: { accountId: string }) {
   const updateAccount = useMutation(api.recruitment.updateAccount);
   const [name, setName] = useState("");
   const [gameServer, setGameServer] = useState<GameServer>("JP");
-  const [permanentCharge, setPermanentCharge] = useState(0);
-  const [limitedCharge, setLimitedCharge] = useState(0);
+  const [permanentCharge, setPermanentCharge] = useState<NumericInputValue>(0);
+  const [limitedCharge, setLimitedCharge] = useState<NumericInputValue>(0);
 
   useEffect(() => {
     if (result) {
@@ -116,30 +121,29 @@ export function RecruitmentAccountView({ accountId }: { accountId: string }) {
           <Label htmlFor="edit-permanent-charge">
             {t("tools.recruitment.permanent")}
           </Label>
-          <Input
+          <NumericInput
             id="edit-permanent-charge"
-            type="number"
             min={0}
             max={200}
             value={permanentCharge}
-            onChange={(event) => setPermanentCharge(Number(event.target.value))}
+            onValueChange={setPermanentCharge}
           />
         </div>
         <div className="flex w-24 flex-col gap-2">
           <Label htmlFor="edit-limited-charge">
             {t("tools.recruitment.limited")}
           </Label>
-          <Input
+          <NumericInput
             id="edit-limited-charge"
-            type="number"
             min={0}
             max={200}
             value={limitedCharge}
-            onChange={(event) => setLimitedCharge(Number(event.target.value))}
+            onValueChange={setLimitedCharge}
           />
         </div>
         <Button
           onClick={async () => {
+            if (permanentCharge === "" || limitedCharge === "") return;
             try {
               await updateAccount({
                 accountId: accountId as Id<"recruitmentAccount">,
@@ -153,7 +157,9 @@ export function RecruitmentAccountView({ accountId }: { accountId: string }) {
               toast.error(t("tools.recruitment.toasts.accountUpdateFail"));
             }
           }}
-          disabled={!name.trim()}
+          disabled={
+            !name.trim() || permanentCharge === "" || limitedCharge === ""
+          }
         >
           <SaveIcon />
           {t("common.saveChanges")}
@@ -241,6 +247,16 @@ export function RecruitmentAccountView({ accountId }: { accountId: string }) {
                     label={t("tools.recruitment.experiencedPURate")}
                     value={`${session.stats.experiencedPURate.toFixed(2)}%`}
                   />
+                  <div className="flex items-center justify-end gap-1">
+                    {session.pickupsObtained.map((pickup, index) => (
+                      <img
+                        key={`${pickup.studentId}-${index}`}
+                        src={buildStudentIconUrlFromId(pickup.studentId)}
+                        alt=""
+                        className="size-8 rounded-full border-2 border-background object-cover shadow-sm"
+                      />
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </Link>

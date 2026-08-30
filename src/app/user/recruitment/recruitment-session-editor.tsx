@@ -8,6 +8,10 @@ import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  NumericInput,
+  type NumericInputValue,
+} from "@/components/ui/numeric-input";
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -38,6 +42,9 @@ import { api } from "~convex/api";
 import type { Id } from "~convex/dataModel";
 
 type Props = { accountId: string; sessionId?: string };
+type RecruitmentPickupDraft = Omit<RecruitmentPickup, "charge"> & {
+  charge: NumericInputValue;
+};
 
 export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
   const t = useTranslations();
@@ -58,12 +65,13 @@ export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
   const [datePopoverOpen, setDatePopoverOpen] = useState(false);
   const [kind, setKind] = useState<"permanent" | "limited">("limited");
   const [isFestBanner, setIsFestBanner] = useState(false);
-  const [startCharge, setStartCharge] = useState(0);
-  const [previousTickets, setPreviousTickets] = useState(0);
-  const [rebateTicketsUsed, setRebateTicketsUsed] = useState<number>();
-  const [totalPulls, setTotalPulls] = useState(0);
-  const [threeStarCount, setThreeStarCount] = useState(0);
-  const [pickups, setPickups] = useState<RecruitmentPickup[]>([]);
+  const [startCharge, setStartCharge] = useState<NumericInputValue>(0);
+  const [previousTickets, setPreviousTickets] = useState<NumericInputValue>(0);
+  const [rebateTicketsUsed, setRebateTicketsUsed] =
+    useState<NumericInputValue>();
+  const [totalPulls, setTotalPulls] = useState<NumericInputValue>(0);
+  const [threeStarCount, setThreeStarCount] = useState<NumericInputValue>(0);
+  const [pickups, setPickups] = useState<RecruitmentPickupDraft[]>([]);
 
   useEffect(() => {
     if (sessionResult) {
@@ -91,15 +99,35 @@ export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
     }
   }, [sessionResult, accountResult, sessionId, kind]);
 
-  const input: RecruitmentSessionInput = {
+  const input = useMemo<RecruitmentSessionInput | null>(() => {
+    if (
+      startCharge === "" ||
+      totalPulls === "" ||
+      threeStarCount === "" ||
+      previousTickets === "" ||
+      (rebateTicketsUsed !== undefined && rebateTicketsUsed === "") ||
+      pickups.some((pickup) => pickup.charge === "")
+    ) {
+      return null;
+    }
+    return {
+      startCharge,
+      totalPulls,
+      threeStarCount,
+      rebateTicketsFromPreviousSession: previousTickets,
+      rebateTicketsUsed,
+      pickupsObtained: pickups as RecruitmentPickup[],
+    };
+  }, [
     startCharge,
     totalPulls,
     threeStarCount,
-    rebateTicketsFromPreviousSession: previousTickets,
+    previousTickets,
     rebateTicketsUsed,
-    pickupsObtained: pickups,
-  };
+    pickups,
+  ]);
   const stats = useMemo(() => {
+    if (!input) return { value: null, error: null };
     try {
       return { value: calculateRecruitmentStats(input), error: null };
     } catch (error) {
@@ -115,6 +143,7 @@ export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
     previousTickets,
     rebateTicketsUsed,
     pickups,
+    input,
   ]);
   if (accountResult === undefined || (sessionId && sessionResult === undefined))
     return <MessageBox>{t("common.loading")}</MessageBox>;
@@ -122,7 +151,7 @@ export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
     return <MessageBox>{t("tools.recruitment.failedToLoad")}</MessageBox>;
 
   async function save() {
-    if (!stats.value || !name.trim()) return;
+    if (!stats.value || !input || !name.trim()) return;
     try {
       if (sessionId) {
         await updateSession({
@@ -131,10 +160,10 @@ export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
           date: date.getTime(),
           kind,
           isFestBanner,
-          startCharge,
-          totalPulls,
-          pickupsObtained: pickups,
-          threeStarCount,
+          startCharge: input.startCharge,
+          totalPulls: input.totalPulls,
+          pickupsObtained: input.pickupsObtained,
+          threeStarCount: input.threeStarCount,
           rebateTicketsUsed: stats.value.rebateTicketsUsed,
         });
       } else {
@@ -144,10 +173,10 @@ export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
           date: date.getTime(),
           kind,
           isFestBanner,
-          startCharge,
-          totalPulls,
-          pickupsObtained: pickups,
-          threeStarCount,
+          startCharge: input.startCharge,
+          totalPulls: input.totalPulls,
+          pickupsObtained: input.pickupsObtained,
+          threeStarCount: input.threeStarCount,
           rebateTicketsUsed: stats.value.rebateTicketsUsed,
         });
       }
@@ -281,12 +310,11 @@ export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
         <div className="grid gap-4 sm:grid-cols-4">
           <div className="flex flex-col gap-2">
             <Label>{t("tools.recruitment.startCharge")}</Label>
-            <Input
-              type="number"
+            <NumericInput
               min={0}
               max={200}
               value={startCharge}
-              onChange={(event) => setStartCharge(Number(event.target.value))}
+              onValueChange={setStartCharge}
             />
             <p className="text-xs text-muted-foreground">
               {t("tools.recruitment.startChargeHint")}
@@ -294,11 +322,10 @@ export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
           </div>
           <div className="flex flex-col gap-2">
             <Label>{t("tools.recruitment.totalPulls")}</Label>
-            <Input
-              type="number"
+            <NumericInput
               min={0}
               value={totalPulls}
-              onChange={(event) => setTotalPulls(Number(event.target.value))}
+              onValueChange={setTotalPulls}
             />
             <p className="text-xs text-muted-foreground">
               {t("tools.recruitment.totalPullsHint")}
@@ -306,13 +333,10 @@ export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
           </div>
           <div className="flex flex-col gap-2">
             <Label>{t("tools.recruitment.threeStars")}</Label>
-            <Input
-              type="number"
+            <NumericInput
               min={0}
               value={threeStarCount}
-              onChange={(event) =>
-                setThreeStarCount(Number(event.target.value))
-              }
+              onValueChange={setThreeStarCount}
             />
             <p className="text-xs text-muted-foreground">
               {t("tools.recruitment.threeStarsHint")}
@@ -320,13 +344,10 @@ export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
           </div>
           <div className="flex flex-col gap-2">
             <Label>{t("tools.recruitment.ticketsUsed")}</Label>
-            <Input
-              type="number"
+            <NumericInput
               min={0}
-              value={rebateTicketsUsed ?? stats.value?.rebateTicketsUsed ?? 0}
-              onChange={(event) =>
-                setRebateTicketsUsed(Number(event.target.value))
-              }
+              value={rebateTicketsUsed ?? stats.value?.rebateTicketsUsed ?? ""}
+              onValueChange={setRebateTicketsUsed}
             />
             <p className="text-xs text-muted-foreground">
               {t("tools.recruitment.ticketsUsedHint")}
@@ -395,18 +416,15 @@ export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
                 <Label className="text-xs text-muted-foreground">
                   {t("tools.recruitment.pickupCharge")}
                 </Label>
-                <Input
+                <NumericInput
                   aria-label={t("tools.recruitment.pickupCharge")}
-                  type="number"
                   min={1}
                   max={200}
                   value={pickup.charge}
-                  onChange={(event) =>
+                  onValueChange={(charge) =>
                     setPickups(
                       pickups.map((item, i) =>
-                        i === index
-                          ? { ...item, charge: Number(event.target.value) }
-                          : item,
+                        i === index ? { ...item, charge } : item,
                       ),
                     )
                   }
@@ -481,7 +499,10 @@ export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
       </div>
       {stats.error && <p className="text-sm text-destructive">{stats.error}</p>}
       {stats.value && (
-        <SessionAnalytics stats={stats.value} pickups={pickups} />
+        <SessionAnalytics
+          stats={stats.value}
+          pickups={input?.pickupsObtained ?? []}
+        />
       )}
       <div className="flex gap-2">
         <Button onClick={save} disabled={!stats.value || !name.trim()}>
