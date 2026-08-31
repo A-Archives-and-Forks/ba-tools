@@ -3,8 +3,17 @@
 import { SessionAnalytics } from "@/app/user/recruitment/_components/session-analytics";
 import { MessageBox } from "@/components/common/message-box";
 import { StudentPicker } from "@/components/common/student-picker";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -28,6 +37,7 @@ import { useMutation, useQuery } from "convex/react";
 import {
   ChevronDownIcon,
   ChevronLeftIcon,
+  InfoIcon,
   PlusIcon,
   SaveIcon,
   Trash2Icon,
@@ -63,6 +73,7 @@ export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
   const [name, setName] = useState("");
   const [date, setDate] = useState<Date>(new Date());
   const [datePopoverOpen, setDatePopoverOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [kind, setKind] = useState<"permanent" | "limited">("limited");
   const [isFestBanner, setIsFestBanner] = useState(false);
   const [startCharge, setStartCharge] = useState<NumericInputValue>(0);
@@ -86,13 +97,13 @@ export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
       setThreeStarCount(sessionResult.threeStarCount);
       setPickups(sessionResult.pickupsObtained);
     } else if (accountResult && !sessionId) {
-      const previous = accountResult.sessions.find(
-        (session) => session.kind === kind,
-      );
       setStartCharge(
         kind === "limited"
           ? accountResult.account.limitedCharge
           : accountResult.account.permanentCharge,
+      );
+      const previous = accountResult.sessions.find(
+        (session) => session.kind === kind,
       );
       setPreviousTickets(previous?.stats.remainingRebateTickets ?? 0);
       setRebateTicketsUsed(undefined);
@@ -145,6 +156,40 @@ export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
     pickups,
     input,
   ]);
+  function getRecruitmentErrorMessage(error: unknown) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("Cannot recalculate")) {
+      return t("tools.recruitment.errors.inconsistentHistory");
+    }
+    if (message.includes("chronological order")) {
+      return t("tools.recruitment.errors.chronologicalOrder");
+    }
+    if (message.includes("Start charge must be")) {
+      return t("tools.recruitment.errors.invalidStartCharge");
+    }
+    if (message.includes("Total pulls must be")) {
+      return t("tools.recruitment.errors.invalidTotalPulls");
+    }
+    if (message.includes("3★ count")) {
+      return t("tools.recruitment.errors.invalidThreeStarCount");
+    }
+    if (message.includes("Rebate tickets used")) {
+      return t("tools.recruitment.errors.invalidTicketsUsed");
+    }
+    if (message.includes("Each pickup")) {
+      return t("tools.recruitment.errors.invalidPickup");
+    }
+    if (message.includes("first pickup charge")) {
+      return t("tools.recruitment.errors.firstPickupBelowStart");
+    }
+    if (message.includes("Pickup charges must")) {
+      return t("tools.recruitment.errors.pickupsOutOfOrder");
+    }
+    if (message.includes("Pickup charges require")) {
+      return t("tools.recruitment.errors.tooFewPulls");
+    }
+    return t("tools.recruitment.toasts.sessionSaveFail");
+  }
   if (accountResult === undefined || (sessionId && sessionResult === undefined))
     return <MessageBox>{t("common.loading")}</MessageBox>;
   if (sessionId && !sessionResult)
@@ -183,20 +228,17 @@ export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
       toast.success(t("tools.recruitment.toasts.sessionSaved"));
       router.push(`/user/recruitment/${accountId}`);
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : t("tools.recruitment.toasts.sessionSaveFail"),
-      );
+      toast.error(getRecruitmentErrorMessage(error));
     }
   }
 
   async function remove() {
-    if (!sessionId || !confirm(t("tools.recruitment.confirmDelete"))) return;
+    if (!sessionId) return;
     try {
       await deleteSession({
         sessionId: sessionId as Id<"recruitmentSession">,
       });
+      setDeleteDialogOpen(false);
       router.push(`/user/recruitment/${accountId}`);
     } catch (error) {
       toast.error(
@@ -224,6 +266,13 @@ export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
             : t("tools.recruitment.newSession")}
         </h1>
       </div>
+      <Alert className="border-primary/50 bg-primary/10">
+        <InfoIcon />
+        <AlertTitle>{t("tools.recruitment.chronologicalTitle")}</AlertTitle>
+        <AlertDescription>
+          {t("tools.recruitment.chronologicalDescription")}
+        </AlertDescription>
+      </Alert>
       <fieldset className="flex flex-col gap-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="flex flex-col gap-2">
@@ -497,7 +546,11 @@ export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
           <strong>{stats.value?.pullsPerThreeStar?.toFixed(2) ?? "N/A"}</strong>
         </div>
       </div>
-      {stats.error && <p className="text-sm text-destructive">{stats.error}</p>}
+      {stats.error && (
+        <p className="text-sm text-destructive">
+          {getRecruitmentErrorMessage(new Error(stats.error))}
+        </p>
+      )}
       {stats.value && (
         <SessionAnalytics
           stats={stats.value}
@@ -510,10 +563,36 @@ export function RecruitmentSessionEditor({ accountId, sessionId }: Props) {
           {t("common.saveChanges")}
         </Button>
         {sessionId && (
-          <Button variant="destructive" onClick={remove}>
-            <Trash2Icon />
-            {t("common.delete")}
-          </Button>
+          <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <Button
+              variant="destructive"
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              <Trash2Icon />
+              {t("common.delete")}
+            </Button>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {t("tools.recruitment.confirmDeleteTitle")}
+                </DialogTitle>
+                <DialogDescription>
+                  {t("tools.recruitment.confirmDeleteDescription")}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setDeleteDialogOpen(false)}
+                >
+                  {t("common.cancel")}
+                </Button>
+                <Button variant="destructive" onClick={remove}>
+                  {t("common.delete")}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         )}
       </div>
     </div>

@@ -148,14 +148,30 @@ async function rebuildAccountAnalytics(
       startCharge,
       rebateTicketsFromPreviousSession,
     };
-    const stats = statsFor({
-      ...input,
-      isFestBanner: session.isFestBanner ?? false,
-    });
-    const computedStats = computedStatsFor({
-      ...input,
-      isFestBanner: session.isFestBanner ?? false,
-    });
+    let stats: ReturnType<typeof statsFor>;
+    let computedStats: ReturnType<typeof computedStatsFor>;
+    try {
+      stats = statsFor({
+        ...input,
+        isFestBanner: session.isFestBanner ?? false,
+      });
+      computedStats = computedStatsFor({
+        ...input,
+        isFestBanner: session.isFestBanner ?? false,
+      });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        (error.message === "Pickup charges must increase after each pickup." ||
+          error.message ===
+            "The first pickup charge must be higher than the starting charge.")
+      ) {
+        throw new Error(
+          `Cannot recalculate "${session.name}": its recorded pickup charges are lower than the recalculated starting charge (${startCharge}). Edit this session or adjust the earlier session so the pull history is consistent.`,
+        );
+      }
+      throw error;
+    }
 
     if (
       session.startCharge !== startCharge ||
@@ -239,7 +255,8 @@ export const getSession = authenticatedQuery({
   args: { sessionId: v.id("recruitmentSession") },
   handler: async (ctx, { sessionId }) => {
     const session = await ctx.db.get(sessionId);
-    if (!session || session.userId !== ctx.user._id) {
+    if (!session) return null;
+    if (session.userId !== ctx.user._id) {
       throw new Error("Recruitment session not found.");
     }
     const latest = await getLatestSession(
@@ -326,14 +343,24 @@ export const createSession = authenticatedMutation({
   },
   handler: async (ctx, args) => {
     const account = await assertAccount(ctx, args.recruitmentAccountId);
+    const laterSession = (
+      await ctx.db
+        .query("recruitmentSession")
+        .withIndex("by_recruitmentAccountId_date", (q: any) =>
+          q.eq("recruitmentAccountId", args.recruitmentAccountId),
+        )
+        .collect()
+    ).find((session: any) => session.date > args.date);
+    if (laterSession) {
+      throw new Error(
+        "Recruitment sessions must be created in chronological order.",
+      );
+    }
     const previous = await getLatestSession(
       ctx,
       args.recruitmentAccountId,
       args.kind,
     );
-    const rebateTicketsFromPreviousSession = previous
-      ? statsFor(previous).remainingRebateTickets
-      : 0;
     const session = {
       userId: ctx.user._id,
       recruitmentAccountId: args.recruitmentAccountId,
@@ -341,7 +368,9 @@ export const createSession = authenticatedMutation({
       date: args.date,
       kind: args.kind,
       isFestBanner: args.isFestBanner,
-      rebateTicketsFromPreviousSession,
+      rebateTicketsFromPreviousSession: previous
+        ? statsFor(previous).remainingRebateTickets
+        : 0,
       startCharge: args.startCharge,
       totalPulls: args.totalPulls,
       pickupsObtained: args.pickupsObtained,
@@ -428,55 +457,7 @@ export const backfillRecruitmentAnalytics = internalMutation({
   handler: async (ctx) => {
     const accounts = await ctx.db.query("recruitmentAccount").collect();
     for (const account of accounts) {
-      const sessions = await ctx.db
-        .query("recruitmentSession")
-        .withIndex("by_recruitmentAccountId", (q) =>
-          q.eq("recruitmentAccountId", account._id),
-        )
-        .collect();
-      let aggregates = emptyAccountAggregates();
-      let latestPermanent: (typeof sessions)[number] | undefined;
-      let latestLimited: (typeof sessions)[number] | undefined;
-
-      for (const session of sessions) {
-        const computedStats = computedStatsFor(session);
-        const stats = statsFor(inputFor(session));
-        aggregates = applySessionToAggregates(
-          aggregates,
-          session.kind,
-          session.isFestBanner ?? false,
-          inputFor(session),
-          stats,
-          1,
-        );
-        await ctx.db.patch(session._id, {
-          isFestBanner: session.isFestBanner ?? false,
-          computedStats,
-        });
-        const latest =
-          session.kind === "permanent" ? latestPermanent : latestLimited;
-        if (
-          !latest ||
-          session.date > latest.date ||
-          (session.date === latest.date &&
-            session._creationTime > latest._creationTime)
-        ) {
-          if (session.kind === "permanent") latestPermanent = session;
-          else latestLimited = session;
-        }
-      }
-
-      await ctx.db.patch(account._id, {
-        aggregates,
-        latestPermanentSessionId: latestPermanent?._id,
-        latestLimitedSessionId: latestLimited?._id,
-        permanentCharge: latestPermanent
-          ? computedStatsFor(latestPermanent).endCharge
-          : account.permanentCharge,
-        limitedCharge: latestLimited
-          ? computedStatsFor(latestLimited).endCharge
-          : account.limitedCharge,
-      });
+      await rebuildAccountAnalytics(ctx, account);
     }
   },
 });

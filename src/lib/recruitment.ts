@@ -332,7 +332,11 @@ export function validateRecruitmentSession(
     const cycleStart = index === 0 ? input.startCharge : 0;
     const cyclePulls = pickup.charge - cycleStart;
     if (cyclePulls < 1) {
-      throw new Error("Pickup charges must be in pull order.");
+      throw new Error(
+        index === 0
+          ? "The first pickup charge must be higher than the starting charge."
+          : "Pickup charges must increase after each pickup.",
+      );
     }
     consumedPulls += cyclePulls;
   }

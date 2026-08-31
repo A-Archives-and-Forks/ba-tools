@@ -168,7 +168,7 @@ export function RecruitmentAccountView({ accountId }: { accountId: string }) {
       {result.sessions.length === 0 ? (
         <MessageBox>{t("tools.recruitment.noSessions")}</MessageBox>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {result.sessions.map((session) => (
             <Link
               href={`/user/recruitment/${accountId}/sessions/${session._id}`}

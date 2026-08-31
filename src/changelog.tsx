@@ -45,6 +45,32 @@ export type ChangelogItemData = {
 
 export const CHANGELOG: ChangelogItemData[] = [
   {
+    date: "August 31, 2026",
+    features: [],
+    fixes: [
+      {
+        scope: CHANGELOG_SCOPES.recruitment,
+        description:
+          "Fixed a bug where deleting a recruitment session would result in a White Screen of Death error.",
+      },
+    ],
+    changes: [
+      {
+        scope: CHANGELOG_SCOPES.recruitment,
+        description:
+          "Sessions older than the ones already created cannot be added anymore. All sessions must be defined in chronological order. A notice has been added to indicate this.",
+      },
+      {
+        scope: CHANGELOG_SCOPES.recruitment,
+        description: "Improved error messages.",
+      },
+      {
+        scope: CHANGELOG_SCOPES.recruitment,
+        description: "Improved UI of the session list page on large displays.",
+      },
+    ],
+  },
+  {
     date: "August 27, 2026",
     features: [
       {
