@@ -53,6 +53,11 @@ export const CHANGELOG: ChangelogItemData[] = [
         description:
           "Fixed a bug where deleting a recruitment session would result in a White Screen of Death error.",
       },
+      {
+        scope: CHANGELOG_SCOPES.formationDisplay,
+        description:
+          "Fixed a bug where starter skill numerical labels would not render if the starter skills are in strictly ascending order.",
+      },
     ],
     changes: [
       {

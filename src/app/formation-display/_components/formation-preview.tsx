@@ -1,8 +1,8 @@
 "use client";
 
+import { FormationItemPopover } from "@/app/formation-display/_components/formation-item-popover";
 import { EmptyCard } from "@/components/common/empty-card";
 import { StudentCard } from "@/components/common/student-card";
-import { FormationItemPopover } from "@/app/formation-display/_components/formation-item-popover";
 import { Popover, PopoverAnchor } from "@/components/ui/popover";
 import {
   type FormationType,
@@ -11,7 +11,6 @@ import {
 } from "@/lib/formation-type";
 import type { StarLevel, Student, UELevel } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { useCallback, useState, type SetStateAction } from "react";
 import {
   DndContext,
   type DragEndEvent,
@@ -22,13 +21,14 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import {
+  SortableContext,
   arrayMove,
   rectSortingStrategy,
-  SortableContext,
   sortableKeyboardCoordinates,
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { type SetStateAction, useCallback, useState } from "react";
 
 export type StudentItem = {
   id: string;
@@ -230,13 +230,14 @@ function SortableGroup({
             >
               {entry.student ? (
                 <StudentCard
+                  {...entry}
                   noDisplayRole={noDisplayRole}
                   student={entry.student}
                   starterOrder={resolvedStarterOrders.get(entry.id)}
                   starterPastThreshold={
-                    (resolvedStarterOrders.get(entry.id) ?? 0) > starterThreshold
+                    (resolvedStarterOrders.get(entry.id) ?? 0) >
+                    starterThreshold
                   }
-                  {...entry}
                 />
               ) : (
                 <EmptyCard />
@@ -262,7 +263,10 @@ export function FormationPreview({
     return null;
   }
 
-  const resolvedStarterOrders = resolveStarterOrders([...strikers, ...specials]);
+  const resolvedStarterOrders = resolveStarterOrders([
+    ...strikers,
+    ...specials,
+  ]);
   const starterThreshold = starterThresholdFor(formationType);
 
   const strikersContent = (
@@ -289,13 +293,13 @@ export function FormationPreview({
             entry.student ? (
               <StudentCard
                 key={entry.id}
+                {...entry}
                 noDisplayRole={noDisplayRole}
                 student={entry.student}
                 starterOrder={resolvedStarterOrders.get(entry.id)}
                 starterPastThreshold={
                   (resolvedStarterOrders.get(entry.id) ?? 0) > starterThreshold
                 }
-                {...entry}
               />
             ) : (
               <EmptyCard key={entry.id} />
@@ -330,13 +334,13 @@ export function FormationPreview({
             entry.student ? (
               <StudentCard
                 key={entry.id}
+                {...entry}
                 noDisplayRole={noDisplayRole}
                 student={entry.student}
                 starterOrder={resolvedStarterOrders.get(entry.id)}
                 starterPastThreshold={
                   (resolvedStarterOrders.get(entry.id) ?? 0) > starterThreshold
                 }
-                {...entry}
               />
             ) : (
               <EmptyCard key={entry.id} />
