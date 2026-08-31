@@ -3,17 +3,18 @@ import { headers } from "next/headers";
 
 import { Plana } from "@/components/plana";
 
-import checkMobile from "ismobilejs";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { ToolsAndResources } from "@/app/(home)/_components/tools-and-resources";
 import { DonationBox } from "@/app/(home)/_components/donation-box";
-import { ChangelogItem } from "@/components/common/changelog-item";
-import { CHANGELOG } from "@/changelog";
-import { Separator } from "@/components/ui/separator";
-import { getTranslations } from "next-intl/server";
-import { StudentOfTheDay } from "@/app/(home)/_components/student-of-the-day";
+import { IspNotice } from "@/app/(home)/_components/isp-notice";
 import { ResetInfo } from "@/app/(home)/_components/reset-info";
+import { StudentOfTheDay } from "@/app/(home)/_components/student-of-the-day";
+import { ToolsAndResources } from "@/app/(home)/_components/tools-and-resources";
+import { CHANGELOG } from "@/changelog";
+import { ChangelogItem } from "@/components/common/changelog-item";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import checkMobile from "ismobilejs";
+import { getTranslations } from "next-intl/server";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Joe's Blue Archive Tools",
@@ -33,14 +34,7 @@ export default async function Home() {
 
   return (
     <article className="flex flex-col gap-4 max-w-4xl mx-auto">
-      <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-md p-4">
-        <p className="text-yellow-500 text-sm">
-          <strong>Notice:</strong> I am aware that the website is not accessible
-          on certain ISPs in the United States and I'm currently working on a
-          solution. The issue likely stems from a false positive in the security
-          filters of said ISPs. Thank you for your patience and understanding.
-        </p>
-      </div>
+      <IspNotice />
 
       <h1 className="text-4xl">{t("static.home.welcome")}</h1>
 
