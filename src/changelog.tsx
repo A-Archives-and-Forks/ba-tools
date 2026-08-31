@@ -68,6 +68,11 @@ export const CHANGELOG: ChangelogItemData[] = [
         scope: CHANGELOG_SCOPES.recruitment,
         description: "Improved UI of the session list page on large displays.",
       },
+      {
+        scope: CHANGELOG_SCOPES.recruitment,
+        description:
+          "JP is the only selectable game server for recruitment accounts, as the Recruitment Charge system is not available on other game servers yet. Existing accounts on other game servers will not be affected, but the server can only be changed to JP for the time being.",
+      },
     ],
   },
   {

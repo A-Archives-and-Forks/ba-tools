@@ -110,7 +110,11 @@ export function RecruitmentAccountView({ accountId }: { accountId: string }) {
             </SelectTrigger>
             <SelectContent>
               {GAME_SERVERS.map((server) => (
-                <SelectItem key={server} value={server}>
+                <SelectItem
+                  key={server}
+                  value={server}
+                  disabled={server !== "JP"}
+                >
                   {GAME_SERVER_NAMES[server]}
                 </SelectItem>
               ))}
