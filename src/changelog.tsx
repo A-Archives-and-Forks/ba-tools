@@ -45,6 +45,18 @@ export type ChangelogItemData = {
 
 export const CHANGELOG: ChangelogItemData[] = [
   {
+    date: "September 2, 2026",
+    features: [],
+    fixes: [],
+    changes: [
+      {
+        scope: CHANGELOG_SCOPES.inventoryManagement,
+        description:
+          'Item widths in the "Dive into OCEAN!" preset are now always larger than their heights.',
+      },
+    ],
+  },
+  {
     date: "August 31, 2026",
     features: [],
     fixes: [

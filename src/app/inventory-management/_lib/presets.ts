@@ -208,8 +208,8 @@ export const ITEMS = {
 
   seaweed: {
     name: "Seaweed",
-    width: 1,
-    height: 4,
+    width: 4,
+    height: 1,
   },
 
   seaUrchin: {
@@ -220,8 +220,8 @@ export const ITEMS = {
 
   seaSlug: {
     name: "Sea Slug",
-    width: 1,
-    height: 2,
+    width: 2,
+    height: 1,
   },
 
   starfish: {
